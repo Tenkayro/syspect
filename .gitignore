@@ -1,0 +1,4 @@
+/syspect
+/dist/
+*.test
+*.out
