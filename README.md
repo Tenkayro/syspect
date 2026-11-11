@@ -41,3 +41,32 @@ curl -fsSL https://raw.githubusercontent.com/Tenkayro/syspect/main/uninstall.sh 
 ```
 
 To remove reports and settings as well, run `bash uninstall.sh --purge` after downloading the script.
+
+## Development
+
+Requires Go 1.23+ and Node.js 20.12+.
+
+```bash
+go test ./...
+go build ./cmd/syspect
+
+npm install
+npm run release
+```
+
+`npm run release` builds the Linux binaries for amd64 and arm64 on your machine,
+writes `dist/syspect-linux-*.tar.gz`, and publishes them through `gh release create`.
+The GitHub CLI must be authenticated with `gh auth login`.
+
+Useful flags:
+
+| Flag | Description |
+| --- | --- |
+| `--tag vX.Y.Z` | Release a specific version instead of prompting |
+| `--yes`, `-y` | Skip the confirmation prompt |
+| `--dry-run` | Build the archives without publishing |
+| `--allow-dirty` | Allow uncommitted changes (not recommended) |
+
+The tag is created by the GitHub API, so the tag-push release workflow does not
+run and the locally built archives are the published artifacts.
+
