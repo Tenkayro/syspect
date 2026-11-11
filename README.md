@@ -26,7 +26,7 @@ Then start it:
 syspect
 ```
 
-Linux on **x86_64** and **ARM64** is supported. The installer places the program in `~/.local/bin` and adds that directory to your shell configuration (`~/.bashrc`, `~/.zshrc`, or the fish config). Open a new terminal afterwards, or run `source` on the file it prints. Set `SYSPECT_NO_PATH_MODIFY=1` if you do not want the installer to touch your shell configuration.
+Linux on **x86_64** and **ARM64** is supported. The installer places the program in `~/.local/bin` and adds that directory to your shell configuration (`~/.bashrc`, `~/.zshrc`, or the fish config). Afterwards it asks whether to start Syspect right away. Set `SYSPECT_NO_PATH_MODIFY=1` if you do not want the installer to touch your shell configuration and `SYSPECT_NO_PROMPT=1` to skip the start prompt.
 
 ## Reports and settings
 

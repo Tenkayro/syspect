@@ -77,4 +77,49 @@ update_path() {
 }
 update_path
 
-printf 'Start Syspect with: syspect\n'
+# Offer to launch the TUI right away. Never read from stdin when this script
+# itself was piped into bash, because that stdin is the script source.
+start_syspect() {
+  local reply=''
+  local prompt='Start Syspect now? [Y/n] '
+  local input=''
+
+  if [ "${SYSPECT_NO_PROMPT:-0}" = "1" ]; then
+    printf 'Start Syspect with: syspect\n'
+    return 0
+  fi
+
+  if [ -t 0 ]; then
+    input=stdin
+    printf '%s' "$prompt"
+    if ! IFS= read -r reply; then
+      printf 'Start Syspect with: syspect\n'
+      return 0
+    fi
+  elif { exec 3<>/dev/tty; } 2>/dev/null; then
+    input=tty
+    printf '%s' "$prompt" >&3
+    if ! IFS= read -r -u 3 reply; then
+      exec 3>&-
+      printf '\nStart Syspect with: syspect\n'
+      return 0
+    fi
+    exec 3>&-
+  else
+    printf 'Start Syspect with: syspect\n'
+    return 0
+  fi
+
+  case "$reply" in
+    ''|y|Y|yes|YES|j|J|ja|JA) ;;
+    *) printf 'Skipped. Start it later with: syspect\n'; return 0 ;;
+  esac
+
+  printf 'Starting Syspect...\n'
+  if [ "$input" = "tty" ]; then
+    "$INSTALL_DIR/syspect" < /dev/tty || printf 'Syspect exited with status %s.\n' "$?"
+  else
+    "$INSTALL_DIR/syspect" || printf 'Syspect exited with status %s.\n' "$?"
+  fi
+}
+start_syspect
