@@ -47,7 +47,7 @@ func collectCPU(c string, cfg config.Config) []Result {
 		results = append(results, pass(c, "CPU temperature", temps, "Read directly from /sys/class/hwmon."))
 	}
 
-	results = append(results, pass(c, "CPU features", containsAny(info, "vmx", "svm", "aes", "avx2", "avx512f", "sha_ni"), "Virtualization, encryption and vector instruction support."))
+	results = append(results, pass(c, "CPU features", containsAny(info, "vmx", "svm", "aes", "avx", "avx2", "avx512f", "fma", "bmi2", "sha_ni", "rdrand"), "Virtualization, encryption, vector and hashing instruction support."))
 
 	if vulns := cpuVulnerabilities(); len(vulns) > 0 {
 		status := "PASS"
@@ -83,20 +83,25 @@ func cpuModel(info string) string {
 }
 
 func cpuMicrocode(info string) string {
+	value := ""
 	if v := read("/sys/devices/system/cpu/cpu0/microcode/version"); v != "" {
-		return v
+		value = v
+	} else if v := read("/sys/devices/system/cpu/microcode/version"); v != "" {
+		value = v
 	}
-	if v := read("/sys/devices/system/cpu/microcode/version"); v != "" {
-		return v
-	}
-	for _, line := range strings.Split(info, "\n") {
-		if strings.HasPrefix(line, "microcode") {
-			if parts := strings.SplitN(line, ":", 2); len(parts) == 2 {
-				return strings.TrimSpace(parts[1])
+	if value == "" {
+		for _, line := range strings.Split(info, "\n") {
+			if strings.HasPrefix(line, "microcode") {
+				if parts := strings.SplitN(line, ":", 2); len(parts) == 2 {
+					value = strings.TrimSpace(parts[1])
+				}
 			}
 		}
 	}
-	return ""
+	if value == "" || value == "0xffffffff" || value == "0x0" {
+		return ""
+	}
+	return value
 }
 
 // physicalCoreCount counts unique (physical id, core id) pairs in /proc/cpuinfo.

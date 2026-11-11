@@ -47,7 +47,7 @@ func collectBattery(c string, cfg config.Config) []Result {
 			batteries = append(batteries, entry)
 		case "Mains", "AC", "USB":
 			if read(dir+"/online") != "" {
-				ac = append(ac, map[string]any{"device": name, "online": read(dir+"/online")})
+				ac = append(ac, map[string]any{"device": name, "online": read(dir + "/online")})
 			}
 		}
 	}

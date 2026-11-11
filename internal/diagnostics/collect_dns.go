@@ -64,8 +64,12 @@ func measureDNS(ctx context.Context, server, domain string) (float64, bool) {
 	resolver := &net.Resolver{
 		PreferGo: true,
 		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			proto := "udp"
+			if strings.HasPrefix(network, "tcp") {
+				proto = "tcp"
+			}
 			d := net.Dialer{Timeout: 1500 * time.Millisecond}
-			return d.DialContext(ctx, "udp", net.JoinHostPort(server, "53"))
+			return d.DialContext(ctx, proto, net.JoinHostPort(server, "53"))
 		},
 	}
 	qctx, cancel := context.WithTimeout(ctx, 1500*time.Millisecond)
@@ -137,6 +141,22 @@ func collectDNS(ctx context.Context, c string, timeout time.Duration, cfg config
 	benchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	active := []dnsResolver{}
+	unavailable := []dnsResolver{}
+	for _, resolver := range resolvers {
+		if benchCtx.Err() != nil {
+			break
+		}
+		if _, ok := measureDNS(benchCtx, resolver.Server, "example.com"); ok {
+			active = append(active, resolver)
+		} else {
+			unavailable = append(unavailable, resolver)
+		}
+	}
+	if len(active) == 0 {
+		return []Result{warn(c, "DNS latency benchmark", "No resolver responded", "Every probe timed out; check whether UDP port 53 is blocked by the local network or firewall.")}
+	}
+
 	type outcome struct {
 		resolver dnsResolver
 		real     dnsPhaseStats
@@ -144,7 +164,7 @@ func collectDNS(ctx context.Context, c string, timeout time.Duration, cfg config
 		miss     dnsPhaseStats
 	}
 	outcomes := []outcome{}
-	for _, resolver := range resolvers {
+	for _, resolver := range active {
 		real := dnsPhase{}
 		for round := 0; round < rounds; round++ {
 			for _, domain := range domains {
@@ -179,10 +199,10 @@ func collectDNS(ctx context.Context, c string, timeout time.Duration, cfg config
 	for _, o := range outcomes {
 		totalSamples := o.real.Samples + o.warm.Samples + o.miss.Samples
 		value := map[string]any{
-			"resolver":    o.resolver.Server,
-			"real_world":  o.real,
-			"warm_cache":  o.warm,
-			"cache_miss":  o.miss,
+			"resolver":      o.resolver.Server,
+			"real_world":    o.real,
+			"warm_cache":    o.warm,
+			"cache_miss":    o.miss,
 			"total_queries": totalSamples + o.real.Failures + o.warm.Failures + o.miss.Failures,
 		}
 		if totalSamples == 0 {
@@ -200,7 +220,10 @@ func collectDNS(ctx context.Context, c string, timeout time.Duration, cfg config
 		results = append(results, pass(c, "Fastest resolver (real-world)", map[string]any{
 			"resolver":  bestName,
 			"median_ms": bestMedian,
-		}, "Ranked by median latency across cached and uncached real-world lookups."))
+		}, "Ranked by median latency in the real-world phase."))
+	}
+	for _, resolver := range unavailable {
+		results = append(results, skip(c, "Resolver: "+resolver.Name, "No response to the availability probe within 1.5 seconds. The resolver may be blocked by the local network or firewall."))
 	}
 	if benchCtx.Err() == context.DeadlineExceeded {
 		results = append(results, warn(c, "DNS benchmark coverage", "Partial", "The 30 second budget was exhausted; remaining queries were skipped."))

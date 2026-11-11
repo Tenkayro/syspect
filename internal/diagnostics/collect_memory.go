@@ -38,11 +38,11 @@ func collectMemory(c string, cfg config.Config) []Result {
 			"available_human": humanBytes(avail),
 		}, ""),
 		pass(c, "Memory breakdown", map[string]any{
-			"free_bytes":   vals["MemFree"],
-			"cached_bytes": cached,
+			"free_bytes":    vals["MemFree"],
+			"cached_bytes":  cached,
 			"buffers_bytes": vals["Buffers"],
-			"dirty_bytes":  vals["Dirty"],
-			"slab_bytes":   vals["Slab"],
+			"dirty_bytes":   vals["Dirty"],
+			"slab_bytes":    vals["Slab"],
 		}, "Cached includes reclaimable slab memory."),
 	}
 

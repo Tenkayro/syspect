@@ -6,19 +6,33 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tenkayro/syspect/internal/config"
 	"github.com/tenkayro/syspect/internal/system"
 )
 
 var pciVendors = map[string]string{
 	"0x1002": "AMD/ATI",
 	"0x102b": "Matrox",
+	"0x106b": "Apple",
 	"0x10de": "NVIDIA",
 	"0x1234": "QEMU/Bochs",
+	"0x13b5": "ARM",
+	"0x1414": "Microsoft",
 	"0x15ad": "VMware",
+	"0x1a03": "ASPEED",
 	"0x1af4": "Red Hat Virtio",
+	"0x1b36": "Red Hat",
 	"0x8086": "Intel",
 	"0x80ee": "VirtualBox",
+}
+
+func pciVendorName(id string) string {
+	if name, ok := pciVendors[id]; ok {
+		return name
+	}
+	if id == "" {
+		return "Unknown"
+	}
+	return "Unknown (" + id + ")"
 }
 
 type pciGraphicsAdapter struct {
@@ -43,7 +57,7 @@ func pciGraphicsAdapters() []pciGraphicsAdapter {
 		}
 		out = append(out, pciGraphicsAdapter{
 			Address:  filepath.Base(dir),
-			Vendor:   pciVendors[vendorID],
+			Vendor:   pciVendorName(vendorID),
 			DeviceID: strings.ToLower(read(dir + "/device")),
 			Driver:   driver,
 			BootVGA:  read(dir+"/boot_vga") == "1",
@@ -62,7 +76,7 @@ func drmConnectors() []map[string]any {
 		out = append(out, map[string]any{
 			"connector": filepath.Base(dir),
 			"status":    status,
-			"enabled":   read(dir+"/enabled"),
+			"enabled":   read(dir + "/enabled"),
 		})
 	}
 	return out
@@ -102,7 +116,7 @@ func pciDisplayRows(ctx context.Context, timeout time.Duration) []string {
 	return rows
 }
 
-func collectGPU(ctx context.Context, c string, timeout time.Duration, cfg config.Config) []Result {
+func collectGPU(ctx context.Context, c string, timeout time.Duration) []Result {
 	results := []Result{}
 	if adapters := pciGraphicsAdapters(); len(adapters) > 0 {
 		results = append(results, pass(c, "Graphics adapters", adapters, "Detected from PCI class 0x0300/0x0302/0x0380 in /sys/bus/pci."))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,7 @@ func collectLogs(ctx context.Context, c string, timeout time.Duration, cfg confi
 			if len(lines) > 30 {
 				lines = lines[len(lines)-30:]
 			}
+			lines = collapseLines(lines)
 			if cfg.Privacy {
 				lines = []string{"Log contents hidden by privacy mode."}
 			}
@@ -39,14 +41,38 @@ func collectLogs(ctx context.Context, c string, timeout time.Duration, cfg confi
 			continue
 		}
 		if cfg.Privacy {
-			return []Result{pass(c, "Recent system log errors", "Log contents hidden by privacy mode.", "Source: " + path)}
+			return []Result{pass(c, "Recent system log errors", "Log contents hidden by privacy mode.", "Source: "+path)}
 		}
 		if len(lines) == 0 {
 			return []Result{pass(c, "Recent system log errors", "No error-like entries in the tail of "+path, "")}
 		}
-		return []Result{warn(c, "Recent system log errors", lines, "Fallback scan of "+path+" because journalctl is unavailable.")}
+		return []Result{warn(c, "Recent system log errors", collapseLines(lines), "Fallback scan of "+path+" because journalctl is unavailable.")}
 	}
 	return []Result{skip(c, "System log inspection", "Neither journalctl nor a readable /var/log file was found.")}
+}
+
+func collapseLines(lines []string) []string {
+	order := []string{}
+	counts := map[string]int{}
+	for _, line := range lines {
+		if counts[line] == 0 {
+			order = append(order, line)
+		}
+		counts[line]++
+	}
+	out := make([]string, 0, len(order))
+	for _, line := range order {
+		if counts[line] > 1 {
+			out = append(out, withCount(line, counts[line]))
+			continue
+		}
+		out = append(out, line)
+	}
+	return out
+}
+
+func withCount(line string, n int) string {
+	return line + " (x" + strconv.Itoa(n) + ")"
 }
 
 func tailMatching(path string, maxBytes int64, limit int) ([]string, error) {

@@ -65,7 +65,11 @@ func render(data map[string]any, run diagnostics.Run) string {
 		b.WriteString("<h2>" + html.EscapeString(cat) + "</h2><table><thead><tr><th>Check</th><th>Status</th><th>Value</th><th>Explanation</th></tr></thead><tbody>")
 		for _, r := range groups[cat] {
 			v, _ := json.MarshalIndent(r.Value, "", "  ")
-			b.WriteString("<tr><td>" + html.EscapeString(r.Name) + "</td><td class=\"status " + r.Status + "\">" + r.Status + "</td><td><pre>" + html.EscapeString(string(v)) + "</pre></td><td>" + html.EscapeString(r.Explanation) + "</td></tr>")
+			explanation := html.EscapeString(r.Explanation)
+			if r.Details != "" {
+				explanation += "<br><small>" + html.EscapeString(r.Details) + "</small>"
+			}
+			b.WriteString("<tr><td>" + html.EscapeString(r.Name) + "</td><td class=\"status " + r.Status + "\">" + r.Status + "</td><td><pre>" + html.EscapeString(string(v)) + "</pre></td><td>" + explanation + "</td></tr>")
 		}
 		b.WriteString("</tbody></table>")
 	}

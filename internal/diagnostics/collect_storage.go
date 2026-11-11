@@ -61,22 +61,28 @@ func blockDevices(cfg config.Config) []blockDevice {
 	return out
 }
 
+var realFilesystems = map[string]bool{
+	"ext2": true, "ext3": true, "ext4": true, "xfs": true, "btrfs": true,
+	"zfs": true, "f2fs": true, "vfat": true, "fat": true, "exfat": true,
+	"ntfs": true, "ntfs3": true, "fuseblk": true, "nfs": true, "nfs4": true,
+	"cifs": true, "smb3": true, "squashfs": true, "iso9660": true, "udf": true,
+}
+
 func mounts() []map[string]string {
 	out := []map[string]string{}
-	skipTypes := map[string]bool{
-		"proc": true, "sysfs": true, "devtmpfs": true, "devpts": true,
-		"cgroup": true, "cgroup2": true, "pstore": true, "securityfs": true,
-		"debugfs": true, "tracefs": true, "configfs": true, "fusectl": true,
-		"mqueue": true, "bpf": true, "hugetlbfs": true, "autofs": true,
-	}
+	seen := map[string]bool{}
 	for _, line := range strings.Split(read("/proc/mounts"), "\n") {
 		f := strings.Fields(line)
-		if len(f) < 4 || skipTypes[f[2]] {
+		if len(f) < 4 || !realFilesystems[f[2]] {
 			continue
 		}
+		if seen[f[1]] {
+			continue
+		}
+		seen[f[1]] = true
 		out = append(out, map[string]string{
-			"device":     f[0],
-			"mountpoint": f[1],
+			"device":     strings.ReplaceAll(f[0], `\040`, " "),
+			"mountpoint": strings.ReplaceAll(f[1], `\040`, " "),
 			"filesystem": f[2],
 			"options":    f[3],
 		})

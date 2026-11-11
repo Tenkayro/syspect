@@ -51,6 +51,10 @@ func collectVirtualization(ctx context.Context, c string, timeout time.Duration,
 }
 
 func detectVM() []string {
+	out := []string{}
+	if isWSL() {
+		out = append(out, "WSL2 (Hyper-V)")
+	}
 	haystack := strings.ToLower(read("/sys/class/dmi/id/product_name") + " " + read("/sys/class/dmi/id/sys_vendor") + " " + read("/sys/class/dmi/id/board_vendor"))
 	matches := []struct{ needle, name string }{
 		{"vmware", "VMware"},
@@ -68,7 +72,6 @@ func detectVM() []string {
 		{"google compute", "Google Compute Engine"},
 		{"openstack", "OpenStack"},
 	}
-	out := []string{}
 	for _, m := range matches {
 		if strings.Contains(haystack, m.needle) {
 			out = append(out, m.name)
@@ -77,8 +80,8 @@ func detectVM() []string {
 	if hypervisor := read("/sys/hypervisor/type"); hypervisor != "" {
 		out = append(out, hypervisor)
 	}
-	if strings.Contains(strings.ToLower(read("/proc/cpuinfo")), " hypervisor") || strings.Contains(strings.ToLower(read("/proc/cpuinfo")), "\nhypervisor") {
-		out = append(out, "hypervisor CPU flag")
+	if len(out) == 0 && (strings.Contains(strings.ToLower(read("/proc/cpuinfo")), " hypervisor") || strings.Contains(strings.ToLower(read("/proc/cpuinfo")), "\nhypervisor")) {
+		out = append(out, "Hypervisor (CPU flag)")
 	}
 	return uniqueStrings(out)
 }
@@ -102,6 +105,27 @@ func detectContainer() []string {
 		out = append(out, "WSL")
 	}
 	return uniqueStrings(out)
+}
+
+func isWSL() bool {
+	version := strings.ToLower(read("/proc/version") + read("/proc/sys/kernel/osrelease"))
+	return strings.Contains(version, "microsoft") || strings.Contains(version, "wsl")
+}
+
+func isContainer() bool {
+	if _, err := os.Stat("/.dockerenv"); err == nil {
+		return true
+	}
+	if _, err := os.Stat("/run/.containerenv"); err == nil {
+		return true
+	}
+	cgroup := strings.ToLower(read("/proc/1/cgroup"))
+	for _, marker := range []string{"docker", "kubepods", "containerd", "lxc", "libpod"} {
+		if strings.Contains(cgroup, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func uniqueStrings(in []string) []string {

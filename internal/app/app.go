@@ -48,9 +48,10 @@ type model struct {
 	tools         []tools.Tool
 	toolSelected  map[int]bool
 	pendingTools  []tools.Tool
+	networkForce  bool
 }
 
-var menuItems = []string{"Run full diagnostics", "Run quick scan", "Hardware overview", "Server overview", "Install diagnostic tools", "Settings", "View report location", "Exit"}
+var menuItems = []string{"Run full diagnostics", "Run quick scan", "Hardware overview", "Server overview", "Run DNS benchmark (network)", "Install diagnostic tools", "Settings", "View report location", "Exit"}
 
 func New() tea.Model {
 	s := spinner.New()
@@ -64,35 +65,19 @@ func (m model) scanNext() tea.Cmd {
 	}
 	cat := m.selected[m.index]
 	cfg := m.cfg
+	if m.networkForce {
+		cfg.Network = true
+	}
 	ctx := m.scanContext
 	index := m.index
 	return func() tea.Msg {
 		return scanMsg{index: index, category: cat, results: diagnostics.Collect(ctx, cfg, cat)}
 	}
 }
-func profileIDs(p string) []string {
-	switch p {
-	case "quick":
-		return []string{"os", "cpu", "memory", "gpu", "storage", "virtualization"}
-	case "hardware":
-		return []string{"cpu", "memory", "gpu", "board", "storage", "network", "sensors", "battery"}
-	case "server":
-		return []string{"os", "cpu", "memory", "storage", "network", "kernel", "services", "logs", "virtualization"}
-	default:
-		return []string{"os", "cpu", "memory", "gpu", "board", "storage", "network", "sensors", "battery", "kernel", "services", "logs", "virtualization"}
-	}
-}
 func (m model) startScan(profile string) (model, tea.Cmd) {
 	m.profile = profile
-	m.selected = nil
-	ids := profileIDs(profile)
-	for _, c := range diagnostics.Categories {
-		for _, id := range ids {
-			if c.ID == id {
-				m.selected = append(m.selected, c)
-			}
-		}
-	}
+	m.selected = diagnostics.ProfileCategories(profile)
+	m.networkForce = profile == "dns"
 	m.index = 0
 	m.run = diagnostics.Run{Started: time.Now().UTC().Format(time.RFC3339), Profile: profile}
 	m.started = time.Now()
@@ -176,13 +161,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case 3:
 					return m.startScan("server")
 				case 4:
+					return m.startScan("dns")
+				case 5:
 					m.state = "tools"
 					m.message = "Select optional utilities to install. Existing tools are already checked."
-				case 5:
-					m.state = "settings"
 				case 6:
-					m.message = "Reports: " + system.DataDir() + "/reports"
+					m.state = "settings"
 				case 7:
+					m.message = "Reports: " + system.DataDir() + "/reports"
+				case 8:
 					return m, tea.Quit
 				}
 			}

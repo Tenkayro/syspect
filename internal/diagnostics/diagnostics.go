@@ -120,7 +120,7 @@ func Collect(ctx context.Context, cfg config.Config, cat Category) []Result {
 	case "memory":
 		return collectMemory(c, cfg)
 	case "gpu":
-		return collectGPU(ctx, c, timeout, cfg)
+		return collectGPU(ctx, c, timeout)
 	case "board":
 		return collectBoard(ctx, c, timeout, cfg)
 	case "storage":

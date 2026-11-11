@@ -119,9 +119,9 @@ func collectSensors(ctx context.Context, c string, timeout time.Duration) []Resu
 			continue
 		}
 		zones = append(zones, map[string]any{
-			"zone":      filepath.Base(dir),
-			"type":      read(dir + "/type"),
-			"temp_c":    float64(milli) / 1000,
+			"zone":       filepath.Base(dir),
+			"type":       read(dir + "/type"),
+			"temp_c":     float64(milli) / 1000,
 			"temp_human": fmt.Sprintf("%.1f °C", float64(milli)/1000),
 		})
 	}
