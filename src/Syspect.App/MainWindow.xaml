@@ -20,7 +20,7 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <FontIcon Glyph="&#xE9D9;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                <Image Source="ms-appx:///Assets/syspect.png" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Center" />
                 <TextBlock Text="syspect" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center" />
                 <TextBlock Text="Windows 11 Diagnostics · tenkayro.de" Style="{StaticResource MutedCaptionStyle}" VerticalAlignment="Center" Margin="4,0,0,0" />
             </StackPanel>

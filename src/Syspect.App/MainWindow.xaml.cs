@@ -36,6 +36,12 @@ public sealed partial class MainWindow : Window
 
         if (AppWindow is not null)
         {
+            var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "syspect.ico");
+            if (File.Exists(iconPath))
+            {
+                AppWindow.SetIcon(iconPath);
+            }
+
             AppWindow.Resize(new SizeInt32(1280, 840));
             var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
             if (area is not null)
