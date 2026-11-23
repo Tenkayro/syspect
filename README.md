@@ -13,7 +13,7 @@ Native Windows 11 system diagnostics, repair, and maintenance utility built with
 
 ## Installation
 
-Download the latest `syspect-<version>-win-x64.msi` from [GitHub Releases](https://github.com/Tenkayro/syspect/releases) to install to `C:\Program Files\syspect`, or use the portable `.zip` package. Requires Windows 10/11 (x64) and administrator privileges (requested automatically via UAC).
+Download the latest `syspect-<version>-win-x64-setup.msi` from [GitHub Releases](https://github.com/Tenkayro/syspect/releases) to install to `C:\Program Files\syspect`, or run the portable `syspect-<version>-win-x64.exe` directly. Requires Windows 10/11 (x64) and administrator privileges (requested automatically via UAC).
 
 ## Development
 
@@ -22,7 +22,7 @@ Requires `.NET 10 SDK`, `Windows 10/11 SDK (10.0.26100.0)`, and `Node.js`.
 ```powershell
 npm test        # Run Syspect.Core unit and live read-only diagnostics tests
 npm run start   # Incremental Debug build and elevated launch
-npm run build   # Trimmed Release win-x64 publish to ./publish
-npm run setup   # Build Release publish + WiX v6 MSI installer + ZIP + SHA256SUMS.txt in ./dist
-npm run release # Version bump, verify, build, tag, and publish a GitHub Release (Tenkayro/syspect)
+npm run build   # Trimmed Release win-x64 single-file publish to ./publish
+npm run setup   # Build setup.msi installer + portable .exe + SHA256SUMS.txt in ./dist
+npm run release # Version bump, verify, build, push, and publish a GitHub Release (Tenkayro/syspect)
 ```
