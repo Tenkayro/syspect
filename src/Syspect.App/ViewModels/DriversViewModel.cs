@@ -16,6 +16,8 @@ public sealed class DriversViewModel : ObservableObject
     private int _problemCount;
     private int _hintCount;
     private int _totalCount;
+    private string _errorMessage = string.Empty;
+    private bool _isErrorOpen;
 
     public ObservableCollection<DriverEntry> FilteredDrivers { get; } = [];
 
@@ -42,11 +44,14 @@ public sealed class DriversViewModel : ObservableObject
     public int ProblemCount { get => _problemCount; private set => SetProperty(ref _problemCount, value); }
     public int HintCount { get => _hintCount; private set => SetProperty(ref _hintCount, value); }
     public int TotalCount { get => _totalCount; private set => SetProperty(ref _totalCount, value); }
+    public string ErrorMessage { get => _errorMessage; set => SetProperty(ref _errorMessage, value); }
+    public bool IsErrorOpen { get => _isErrorOpen; set => SetProperty(ref _isErrorOpen, value); }
 
     public async Task LoadAsync()
     {
         if (IsLoading) return;
         IsLoading = true;
+        IsErrorOpen = false;
         try
         {
             var audit = await _services.DriverAudit.AuditAsync();
@@ -55,6 +60,11 @@ public sealed class DriversViewModel : ObservableObject
             HintCount = audit.GenericHintCount;
             TotalCount = audit.KeyDrivers.Count;
             ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Failed to scan drivers: {ex.Message}";
+            IsErrorOpen = true;
         }
         finally
         {

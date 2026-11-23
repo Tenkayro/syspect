@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+using System.Management;
 using System.ServiceProcess;
 using Microsoft.Win32;
 using Syspect.Core.Models;
@@ -276,23 +276,120 @@ public sealed class StartupAndServiceAuditService
             cancellationToken.ThrowIfCancellationRequested();
             var list = new List<ScheduledTaskEntry>();
 
-            var progId = Type.GetTypeFromProgID("Schedule.Service");
-            if (progId is null) return list;
+            using var searcher = new ManagementObjectSearcher(
+                @"\\.\root\Microsoft\Windows\TaskScheduler",
+                "SELECT TaskPath, TaskName, State, Actions, Triggers, Settings FROM MSFT_ScheduledTask");
 
-            dynamic? scheduler = null;
-            try
+            foreach (ManagementObject obj in searcher.Get())
             {
-                scheduler = Activator.CreateInstance(progId);
-                scheduler!.Connect();
-                var rootFolder = scheduler.GetFolder(@"\");
-                CollectTasksRecursive(rootFolder, list, cancellationToken);
-            }
-            finally
-            {
-                if (scheduler is not null && Marshal.IsComObject(scheduler))
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var taskPath = WmiHelper.GetString(obj, "TaskPath", @"\");
+                if (taskPath.Equals(@"\Microsoft", StringComparison.OrdinalIgnoreCase) ||
+                    taskPath.StartsWith(@"\Microsoft\", StringComparison.OrdinalIgnoreCase))
                 {
-                    Marshal.FinalReleaseComObject(scheduler);
+                    continue;
                 }
+
+                var taskName = WmiHelper.GetString(obj, "TaskName");
+                if (string.IsNullOrWhiteSpace(taskName))
+                {
+                    continue;
+                }
+
+                var normalizedFolder = taskPath.TrimEnd('\\');
+                var fullPath = string.IsNullOrEmpty(normalizedFolder)
+                    ? $@"\{taskName}"
+                    : $@"{normalizedFolder}\{taskName}";
+
+                var stateCode = WmiHelper.GetNullableInt(obj, "State") ?? 0;
+                var state = stateCode switch
+                {
+                    1 => "Disabled",
+                    2 => "Queued",
+                    3 => "Ready",
+                    4 => "Running",
+                    _ => stateCode.ToString()
+                };
+
+                bool enabled = stateCode != 1;
+                if (obj["Settings"] is ManagementBaseObject settings)
+                {
+                    try
+                    {
+                        if (settings["Enabled"] is bool settingsEnabled)
+                        {
+                            enabled = settingsEnabled;
+                        }
+                    }
+                    catch { }
+                }
+
+                var triggerNames = new List<string>();
+                if (obj["Triggers"] is ManagementBaseObject[] triggers)
+                {
+                    foreach (var trig in triggers)
+                    {
+                        if (trig is null) continue;
+                        var trigClass = trig.ClassPath.ClassName;
+                        triggerNames.Add(trigClass switch
+                        {
+                            "MSFT_TaskTimeTrigger" => "Schedule",
+                            "MSFT_TaskDailyTrigger" => "Daily",
+                            "MSFT_TaskWeeklyTrigger" => "Weekly",
+                            "MSFT_TaskMonthlyTrigger" or "MSFT_TaskMonthlyDOWTrigger" => "Monthly",
+                            "MSFT_TaskIdleTrigger" => "Idle",
+                            "MSFT_TaskBootTrigger" => "Boot",
+                            "MSFT_TaskLogonTrigger" => "Logon",
+                            "MSFT_TaskRegistrationTrigger" => "Registration",
+                            _ => "Event"
+                        });
+                    }
+                }
+
+                string execPath = string.Empty;
+                string args = string.Empty;
+                if (obj["Actions"] is ManagementBaseObject[] actions)
+                {
+                    foreach (var act in actions)
+                    {
+                        if (act is null) continue;
+                        var candidateExec = WmiHelper.GetString(act, "Execute");
+                        if (act.ClassPath.ClassName.Equals("MSFT_TaskExecAction", StringComparison.OrdinalIgnoreCase) ||
+                            !string.IsNullOrWhiteSpace(candidateExec))
+                        {
+                            execPath = candidateExec;
+                            args = WmiHelper.GetString(act, "Arguments");
+                            break;
+                        }
+                    }
+                }
+
+                var expandedPath = string.IsNullOrWhiteSpace(execPath)
+                    ? string.Empty
+                    : Environment.ExpandEnvironmentVariables(execPath.Trim().Trim('"'));
+                var resolvedTarget = ResolveExecutablePath(execPath) ?? expandedPath;
+                bool isMissing = IsExecutableMissing(expandedPath);
+                bool isCandidate = isMissing || fullPath.Contains("Ubisoft Connect Background Update", StringComparison.OrdinalIgnoreCase);
+
+                string note = isMissing
+                    ? "Target executable no longer exists (orphaned task — safe to delete)."
+                    : fullPath.Contains("Ubisoft Connect Background Update", StringComparison.OrdinalIgnoreCase)
+                        ? "Unnecessary background updater — Ubisoft updates when launched."
+                        : string.Empty;
+
+                list.Add(new ScheduledTaskEntry(
+                    TaskPath: taskPath,
+                    TaskName: taskName,
+                    FullPath: fullPath,
+                    Enabled: enabled,
+                    State: state,
+                    Triggers: string.Join(", ", triggerNames.Distinct()),
+                    Action: string.IsNullOrWhiteSpace(args) ? execPath : $"{execPath} {args}",
+                    TargetPath: resolvedTarget,
+                    IsMissingTarget: isMissing,
+                    IsCleanupCandidate: isCandidate,
+                    Note: note));
             }
 
             return list
@@ -303,71 +400,21 @@ public sealed class StartupAndServiceAuditService
         }, cancellationToken);
     }
 
-    public Task<(bool Success, string Message)> SetTaskEnabledAsync(string fullPath, bool enabled)
+    public async Task<(bool Success, string Message)> SetTaskEnabledAsync(string fullPath, bool enabled)
     {
-        return Task.Run(() =>
-        {
-            var progId = Type.GetTypeFromProgID("Schedule.Service");
-            if (progId is null) return (false, "Task Scheduler COM unavailable.");
-
-            dynamic? scheduler = null;
-            try
-            {
-                scheduler = Activator.CreateInstance(progId);
-                scheduler!.Connect();
-                var lastSlash = fullPath.LastIndexOf('\\');
-                var folderPath = lastSlash <= 0 ? @"\" : fullPath[..lastSlash];
-                var taskName = fullPath[(lastSlash + 1)..];
-                var folder = scheduler.GetFolder(folderPath);
-                var task = folder.GetTask(taskName);
-                task.Enabled = enabled;
-                return (true, enabled ? $"Enabled task '{taskName}'." : $"Disabled task '{taskName}'.");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Error: {ex.Message}");
-            }
-            finally
-            {
-                if (scheduler is not null && Marshal.IsComObject(scheduler))
-                {
-                    Marshal.FinalReleaseComObject(scheduler);
-                }
-            }
-        });
+        var flag = enabled ? "/ENABLE" : "/DISABLE";
+        var (code, output) = await ProcessRunner.RunAsync("schtasks.exe", $"/Change /TN \"{fullPath}\" {flag}").ConfigureAwait(false);
+        return code == 0
+            ? (true, enabled ? $"Enabled task '{fullPath}'." : $"Disabled task '{fullPath}'.")
+            : (false, $"Error (code {code}): {output.Trim()}");
     }
 
-    public Task<(bool Success, string Message)> DeleteTaskAsync(string fullPath)
+    public async Task<(bool Success, string Message)> DeleteTaskAsync(string fullPath)
     {
-        return Task.Run(() =>
-        {
-            var progId = Type.GetTypeFromProgID("Schedule.Service");
-            if (progId is null) return (false, "Task Scheduler COM unavailable.");
-
-            dynamic? scheduler = null;
-            try
-            {
-                scheduler = Activator.CreateInstance(progId);
-                scheduler!.Connect();
-                var lastSlash = fullPath.LastIndexOf('\\');
-                var folderPath = lastSlash <= 0 ? @"\" : fullPath[..lastSlash];
-                var taskName = fullPath[(lastSlash + 1)..];
-                var folder = scheduler.GetFolder(folderPath);
-                folder.DeleteTask(taskName, 0);
-                return (true, $"Deleted task '{taskName}'.");
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Error deleting task: {ex.Message}");
-            }
-            finally
-            {
-                if (scheduler is not null && Marshal.IsComObject(scheduler))
-                {
-                    Marshal.FinalReleaseComObject(scheduler);
-                }
-            }
-        });
+        var (code, output) = await ProcessRunner.RunAsync("schtasks.exe", $"/Delete /TN \"{fullPath}\" /F").ConfigureAwait(false);
+        return code == 0
+            ? (true, $"Deleted task '{fullPath}'.")
+            : (false, $"Error deleting task (code {code}): {output.Trim()}");
     }
 
     private static void ReadRegistryRun(
@@ -525,93 +572,6 @@ public sealed class StartupAndServiceAuditService
         }
 
         return (SafetyTier.Standard, "Third-party service.");
-    }
-
-    private static void CollectTasksRecursive(dynamic folder, List<ScheduledTaskEntry> list, CancellationToken ct)
-    {
-        ct.ThrowIfCancellationRequested();
-
-        string folderPath = folder.Path;
-        if (folderPath.Equals(@"\Microsoft", StringComparison.OrdinalIgnoreCase) ||
-            folderPath.StartsWith(@"\Microsoft\", StringComparison.OrdinalIgnoreCase))
-        {
-            return;
-        }
-
-        var tasks = folder.GetTasks(0);
-        foreach (dynamic task in tasks)
-        {
-            ct.ThrowIfCancellationRequested();
-            string name = task.Name;
-            string fullPath = task.Path;
-            bool enabled = task.Enabled;
-            int stateCode = task.State;
-            string state = stateCode switch
-            {
-                1 => "Disabled",
-                2 => "Queued",
-                3 => "Ready",
-                4 => "Running",
-                _ => stateCode.ToString()
-            };
-
-            var def = task.Definition;
-            var triggerNames = new List<string>();
-            foreach (dynamic trig in def.Triggers)
-            {
-                triggerNames.Add(((int)trig.Type) switch
-                {
-                    1 => "Schedule",
-                    2 => "Daily",
-                    3 => "Weekly",
-                    6 => "Idle",
-                    8 => "Boot",
-                    9 => "Logon",
-                    _ => "Event"
-                });
-            }
-
-            string execPath = string.Empty;
-            string args = string.Empty;
-            foreach (dynamic act in def.Actions)
-            {
-                if ((int)act.Type == 0)
-                {
-                    execPath = act.Path ?? string.Empty;
-                    args = act.Arguments ?? string.Empty;
-                    break;
-                }
-            }
-
-            var expandedPath = Environment.ExpandEnvironmentVariables(execPath.Trim().Trim('"'));
-            bool isMissing = IsExecutableMissing(expandedPath);
-            bool isCandidate = isMissing || fullPath.Contains("Ubisoft Connect Background Update", StringComparison.OrdinalIgnoreCase);
-
-            string note = isMissing
-                ? "Target executable no longer exists (orphaned task — safe to delete)."
-                : fullPath.Contains("Ubisoft Connect Background Update", StringComparison.OrdinalIgnoreCase)
-                    ? "Unnecessary background updater — Ubisoft updates when launched."
-                    : string.Empty;
-
-            list.Add(new ScheduledTaskEntry(
-                TaskPath: folderPath,
-                TaskName: name,
-                FullPath: fullPath,
-                Enabled: enabled,
-                State: state,
-                Triggers: string.Join(", ", triggerNames.Distinct()),
-                Action: string.IsNullOrWhiteSpace(args) ? execPath : $"{execPath} {args}",
-                TargetPath: expandedPath,
-                IsMissingTarget: isMissing,
-                IsCleanupCandidate: isCandidate,
-                Note: note));
-        }
-
-        var subFolders = folder.GetFolders(0);
-        foreach (dynamic sub in subFolders)
-        {
-            CollectTasksRecursive(sub, list, ct);
-        }
     }
 
     private static bool IsExecutableMissing(string expandedPath)

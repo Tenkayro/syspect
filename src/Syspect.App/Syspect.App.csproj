@@ -26,6 +26,7 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
     <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
     <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
@@ -36,7 +37,7 @@
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
     <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
-    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <UseSystemResourceKeys>false</UseSystemResourceKeys>
     <MetricsSupport>false</MetricsSupport>
     <StartupHookSupport>false</StartupHookSupport>
     <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
@@ -47,7 +48,6 @@
   <ItemGroup>
     <TrimmerRootAssembly Include="Syspect.Core" />
     <TrimmerRootAssembly Include="System.Management" />
-    <TrimmerRootAssembly Include="Microsoft.CSharp" />
   </ItemGroup>
 
   <ItemGroup>
