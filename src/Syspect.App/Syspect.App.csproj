@@ -20,18 +20,17 @@
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <TieredPGO>true</TieredPGO>
-    <NoWarn>$(NoWarn);IL2026;IL2072;IL2075;IL2104;IL3000;IL3050</NoWarn>
-  </PropertyGroup>
-
-  <!-- Size & trim optimizations for Release builds -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <TrimMode>partial</TrimMode>
     <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
-    <DebugType>none</DebugType>
-    <DebugSymbols>false</DebugSymbols>
-    <DebuggerSupport>false</DebuggerSupport>
+    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
+    <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
+    <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
+    <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
     <EventSourceSupport>false</EventSourceSupport>
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
     <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
@@ -41,9 +40,10 @@
     <StartupHookSupport>false</StartupHookSupport>
     <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
     <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
+    <NoWarn>$(NoWarn);IL2026;IL2072;IL2075;IL2104;IL3000;IL3050</NoWarn>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+  <ItemGroup>
     <TrimmerRootAssembly Include="Syspect.Core" />
     <TrimmerRootAssembly Include="System.Management" />
     <TrimmerRootAssembly Include="Microsoft.CSharp" />
@@ -56,17 +56,25 @@
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
-    <!-- Modular WindowsAppSDK 1.8 packages (omits AI, ML, and Widgets to keep binary footprint small) -->
+    <!-- Modular WindowsAppSDK 1.8 packages (omits Runtime, AI, ML, and Widgets to keep binary footprint small) -->
     <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="1.8.251216001" />
     <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="1.8.260803002" />
     <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="1.8.260708001" />
     <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
     <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="1.8.25122902" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.260921001" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Syspect.Core\Syspect.Core.csproj" />
   </ItemGroup>
+
+  <Target Name="PruneUnusedWinUiLocales"
+          AfterTargets="AddMicrosoftWindowsAppSDKPayloadFilesFromComponents"
+          BeforeTargets="AssignTargetPaths;CoreCompile">
+    <ItemGroup>
+      <None Remove="@(None)"
+            Condition="'%(None.Extension)' == '.mui' and !$([System.String]::Copy('%(None.Link)').StartsWith('en-us\', System.StringComparison.OrdinalIgnoreCase))" />
+    </ItemGroup>
+  </Target>
 
 </Project>
