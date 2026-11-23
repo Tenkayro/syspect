@@ -1,18 +1,19 @@
-using Microsoft.UI.Text;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using Syspect.App.Services;
 using Syspect.Core.Models;
 using Syspect.Core.Services;
 
 namespace Syspect.App.Views;
 
 /// <summary>
-/// Shared WinUI 3 ContentDialog flow for displaying release notes and installing MSI updates.
+/// Shared WPF modal dialog flow for displaying release notes, downloading, verifying SHA-256, and launching MSI updates.
 /// </summary>
 public static class UpdateDialogHelper
 {
-    public static async Task ShowUpdateDialogAsync(
-        XamlRoot xamlRoot,
+    public static void ShowUpdateDialog(
+        Window? owner,
         UpdateService updateService,
         UpdateCheckResult checkResult)
     {
@@ -26,109 +27,135 @@ public static class UpdateDialogHelper
             ? $" ({release.MsiSizeBytes / (1024d * 1024d):F1} MB)"
             : string.Empty;
 
+        var dialog = new Window
+        {
+            Title = $"Update Available — {release.ReleaseName}",
+            Width = 540,
+            SizeToContent = SizeToContent.Height,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false,
+            WindowStartupLocation = owner is not null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
+            Owner = owner,
+            Background = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1C)),
+            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3))
+        };
+
+        WindowThemeHelper.ApplyDarkTitleBar(dialog);
+
         var summaryText = new TextBlock
         {
             Text = $"Installed: v{checkResult.CurrentVersion}   ->   Latest: v{release.Version}{sizeMb}",
             FontWeight = FontWeights.SemiBold,
-            TextWrapping = TextWrapping.Wrap
+            FontSize = 14,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 10)
         };
 
         var notesContent = string.IsNullOrWhiteSpace(release.ReleaseNotes)
             ? "No release notes were provided for this release."
             : release.ReleaseNotes.Trim();
 
-        var notesScroller = new ScrollViewer
+        var notesBox = new TextBox
         {
-            MaxHeight = 200,
-            Content = new TextBlock
-            {
-                Text = notesContent,
-                TextWrapping = TextWrapping.Wrap,
-                IsTextSelectionEnabled = true
-            }
+            Text = notesContent,
+            IsReadOnly = true,
+            AcceptsReturn = true,
+            TextWrapping = TextWrapping.Wrap,
+            Height = 180,
+            Background = new SolidColorBrush(Color.FromRgb(0x15, 0x15, 0x15)),
+            Foreground = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE4)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(0x35, 0x35, 0x35)),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(10),
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Margin = new Thickness(0, 0, 0, 12)
         };
 
         var statusText = new TextBlock
         {
             FontSize = 12,
-            TextWrapping = TextWrapping.Wrap
+            Foreground = new SolidColorBrush(Color.FromRgb(0xA6, 0xA6, 0xA6)),
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 6)
         };
 
         var progressBar = new ProgressBar
         {
             Minimum = 0,
             Maximum = 100,
-            Value = 0
+            Value = 0,
+            Height = 6,
+            Foreground = new SolidColorBrush(Color.FromRgb(0xE9, 0x74, 0x51)),
+            Background = new SolidColorBrush(Color.FromRgb(0x32, 0x32, 0x32))
         };
 
         var progressPanel = new StackPanel
         {
-            Spacing = 6,
             Visibility = Visibility.Collapsed,
+            Margin = new Thickness(0, 0, 0, 10),
             Children = { statusText, progressBar }
         };
 
-        var errorInfoBar = new InfoBar
+        var warningBanner = new BannerControl
         {
-            Severity = InfoBarSeverity.Warning,
-            IsClosable = false,
+            Severity = hasMsi ? BannerSeverity.Error : BannerSeverity.Warning,
             IsOpen = !hasMsi,
             Message = hasMsi
                 ? string.Empty
-                : "No .msi installer asset is attached to this release. Click Open GitHub to download manually."
+                : "No .msi installer asset is attached to this release. Click Open GitHub to download manually.",
+            Margin = new Thickness(0, 0, 0, 10)
         };
 
-        var contentStack = new StackPanel
+        var downloadBtn = new Button
         {
-            Spacing = 12,
-            MinWidth = 420,
-            Children =
-            {
-                summaryText,
-                notesScroller,
-                progressPanel,
-                errorInfoBar
-            }
+            Content = "Download & Install",
+            IsEnabled = hasMsi,
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        if (Application.Current?.TryFindResource("AccentButtonStyle") is Style accentStyle)
+        {
+            downloadBtn.Style = accentStyle;
+        }
+
+        var openGithubBtn = new Button
+        {
+            Content = "Open GitHub",
+            Margin = new Thickness(0, 0, 8, 0)
         };
 
-        var dialog = new ContentDialog
+        var closeBtn = new Button
         {
-            XamlRoot = xamlRoot,
-            Title = $"Update Available - {release.ReleaseName}",
-            Content = contentStack,
-            PrimaryButtonText = "Download & Install",
-            SecondaryButtonText = "Open GitHub",
-            CloseButtonText = "Later",
-            DefaultButton = hasMsi ? ContentDialogButton.Primary : ContentDialogButton.Secondary,
-            IsPrimaryButtonEnabled = hasMsi
+            Content = "Later",
+            IsCancel = true
         };
 
         using var downloadCts = new CancellationTokenSource();
         var shouldExitForInstaller = false;
+        var isDownloading = false;
 
-        dialog.CloseButtonClick += (_, _) =>
+        dialog.Closing += (_, _) => downloadCts.Cancel();
+
+        closeBtn.Click += (_, _) =>
         {
             downloadCts.Cancel();
+            dialog.Close();
         };
 
-        dialog.SecondaryButtonClick += (_, _) =>
-        {
-            UpdateService.OpenUrlInBrowser(release.HtmlUrl);
-        };
+        openGithubBtn.Click += (_, _) => UpdateService.OpenUrlInBrowser(release.HtmlUrl);
 
-        dialog.PrimaryButtonClick += async (sender, args) =>
+        downloadBtn.Click += async (_, _) =>
         {
-            var deferral = args.GetDeferral();
-            args.Cancel = true;
+            if (isDownloading) return;
+            isDownloading = true;
 
-            sender.IsPrimaryButtonEnabled = false;
-            sender.IsSecondaryButtonEnabled = false;
-            sender.CloseButtonText = "Cancel";
+            downloadBtn.IsEnabled = false;
+            openGithubBtn.IsEnabled = false;
+            closeBtn.Content = "Cancel";
             progressPanel.Visibility = Visibility.Visible;
             progressBar.IsIndeterminate = false;
             progressBar.Value = 0;
             statusText.Text = $"Downloading {release.MsiFileName ?? $"syspect-{release.Version}-win-x64.msi"}...";
-            errorInfoBar.IsOpen = false;
+            warningBanner.IsOpen = false;
 
             try
             {
@@ -154,47 +181,60 @@ public static class UpdateDialogHelper
                 if (UpdateService.TryLaunchMsiUpgrade(msiPath, out var launchError))
                 {
                     shouldExitForInstaller = true;
-                    args.Cancel = false;
+                    dialog.Close();
                 }
                 else
                 {
                     progressPanel.Visibility = Visibility.Collapsed;
-                    errorInfoBar.Severity = InfoBarSeverity.Error;
-                    errorInfoBar.Message = launchError ?? "Could not start Windows Installer.";
-                    errorInfoBar.IsOpen = true;
-                    sender.IsPrimaryButtonEnabled = true;
-                    sender.IsSecondaryButtonEnabled = true;
-                    sender.CloseButtonText = "Later";
+                    warningBanner.Severity = BannerSeverity.Error;
+                    warningBanner.Message = launchError ?? "Could not start Windows Installer.";
+                    warningBanner.IsOpen = true;
+                    downloadBtn.IsEnabled = true;
+                    openGithubBtn.IsEnabled = true;
+                    closeBtn.Content = "Later";
                 }
             }
             catch (OperationCanceledException)
             {
                 progressPanel.Visibility = Visibility.Collapsed;
-                sender.IsPrimaryButtonEnabled = hasMsi;
-                sender.IsSecondaryButtonEnabled = true;
-                sender.CloseButtonText = "Later";
+                downloadBtn.IsEnabled = hasMsi;
+                openGithubBtn.IsEnabled = true;
+                closeBtn.Content = "Later";
             }
             catch (Exception ex)
             {
                 progressPanel.Visibility = Visibility.Collapsed;
-                errorInfoBar.Severity = InfoBarSeverity.Error;
-                errorInfoBar.Message = ex.Message;
-                errorInfoBar.IsOpen = true;
-                sender.IsPrimaryButtonEnabled = hasMsi;
-                sender.IsSecondaryButtonEnabled = true;
-                sender.CloseButtonText = "Later";
+                warningBanner.Severity = BannerSeverity.Error;
+                warningBanner.Message = ex.Message;
+                warningBanner.IsOpen = true;
+                downloadBtn.IsEnabled = hasMsi;
+                openGithubBtn.IsEnabled = true;
+                closeBtn.Content = "Later";
             }
             finally
             {
-                deferral.Complete();
+                isDownloading = false;
             }
         };
 
-        await dialog.ShowAsync();
+        var buttonRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { openGithubBtn, downloadBtn, closeBtn }
+        };
+
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(20),
+            Children = { summaryText, notesBox, progressPanel, warningBanner, buttonRow }
+        };
+
+        dialog.ShowDialog();
 
         if (shouldExitForInstaller)
         {
-            Application.Current.Exit();
+            Application.Current?.Shutdown();
         }
     }
 }

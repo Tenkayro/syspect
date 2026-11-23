@@ -1,9 +1,9 @@
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Windows.ApplicationModel;
 using Windows.Management.Deployment;
+using Windows.Storage.Streams;
 
 namespace Syspect.App.Services;
 
@@ -88,11 +88,7 @@ public sealed class AppIconService
 
             foreach (var (cacheKey, raw) in rawMap)
             {
-                ImageSource? bitmap = null;
-                if (raw is not null)
-                {
-                    bitmap = CreateWriteableBitmap(raw);
-                }
+                ImageSource? bitmap = raw is not null ? CreateBitmapSource(raw) : null;
                 _uiCache[cacheKey] = bitmap;
             }
         }
@@ -169,9 +165,23 @@ public sealed class AppIconService
                 if (logoRef is not null)
                 {
                     using var stream = await logoRef.OpenReadAsync();
-                    var bitmap = new BitmapImage { DecodePixelWidth = 32 };
-                    await bitmap.SetSourceAsync(stream);
-                    return bitmap;
+                    if (stream.Size > 0 && stream.Size <= 4 * 1024 * 1024)
+                    {
+                        using var reader = new DataReader(stream.GetInputStreamAt(0));
+                        await reader.LoadAsync((uint)stream.Size);
+                        var bytes = new byte[(int)stream.Size];
+                        reader.ReadBytes(bytes);
+
+                        using var ms = new MemoryStream(bytes);
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                        bitmap.DecodePixelWidth = 32;
+                        bitmap.StreamSource = ms;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        return bitmap;
+                    }
                 }
             }
         }
@@ -184,7 +194,14 @@ public sealed class AppIconService
         {
             if (pkg.Logo is { IsFile: true } logoUri && File.Exists(logoUri.LocalPath))
             {
-                return new BitmapImage(logoUri) { DecodePixelWidth = 32 };
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = logoUri;
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.DecodePixelWidth = 32;
+                bitmap.EndInit();
+                bitmap.Freeze();
+                return bitmap;
             }
         }
         catch
@@ -195,13 +212,19 @@ public sealed class AppIconService
         return null;
     }
 
-    private static WriteableBitmap CreateWriteableBitmap(RawBgraIcon raw)
+    private static BitmapSource CreateBitmapSource(RawBgraIcon raw)
     {
-        var wb = new WriteableBitmap(raw.Width, raw.Height);
-        using var pixelStream = wb.PixelBuffer.AsStream();
-        pixelStream.Write(raw.Pixels, 0, raw.Pixels.Length);
-        wb.Invalidate();
-        return wb;
+        var bmp = BitmapSource.Create(
+            raw.Width,
+            raw.Height,
+            96,
+            96,
+            PixelFormats.Pbgra32,
+            null,
+            raw.Pixels,
+            raw.Width * 4);
+        bmp.Freeze();
+        return bmp;
     }
 
     private static RawBgraIcon? ExtractShellIcon(string filePath)

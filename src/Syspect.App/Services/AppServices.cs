@@ -3,7 +3,7 @@ using Syspect.Core.Services;
 namespace Syspect.App.Services;
 
 /// <summary>
-/// Central service registry for WinUI 3 pages and ViewModels.
+/// Central service registry for WPF views and ViewModels.
 /// </summary>
 public sealed class AppServices
 {

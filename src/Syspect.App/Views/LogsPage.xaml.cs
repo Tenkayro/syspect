@@ -1,18 +1,19 @@
 using System.Diagnostics;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
+using Syspect.App.Services;
 using Syspect.App.ViewModels;
 using Syspect.Core.Services;
-using Windows.ApplicationModel.DataTransfer;
 
 namespace Syspect.App.Views;
 
-public sealed partial class LogsPage : Page
+public partial class LogsPage : UserControl
 {
     public LogsViewModel ViewModel { get; } = new();
 
     public LogsPage()
     {
+        DataContext = ViewModel;
         InitializeComponent();
         Loaded += async (_, _) =>
         {
@@ -31,9 +32,10 @@ public sealed partial class LogsPage : Page
     private void CopyContentButton_Click(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrEmpty(ViewModel.SelectedLogContent)) return;
-        var pkg = new DataPackage();
-        pkg.SetText(ViewModel.SelectedLogContent);
-        Clipboard.SetContent(pkg);
+        if (!CrashHandlerService.TryCopyToClipboardWin32(ViewModel.SelectedLogContent))
+        {
+            Clipboard.SetText(ViewModel.SelectedLogContent);
+        }
     }
 
     private void OpenFolderButton_Click(object sender, RoutedEventArgs e)

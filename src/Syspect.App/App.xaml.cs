@@ -1,12 +1,10 @@
-using Microsoft.UI.Xaml;
+using System.Windows;
 using Syspect.App.Services;
 
 namespace Syspect.App;
 
 public partial class App : Application
 {
-    private Window? _window;
-
     public App()
     {
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
@@ -24,27 +22,28 @@ public partial class App : Application
             CrashHandlerService.ReportException("TaskScheduler.UnobservedTaskException", args.Exception, isFatal: false);
         };
 
-        InitializeComponent();
-
-        UnhandledException += (_, args) =>
+        DispatcherUnhandledException += (_, args) =>
         {
             args.Handled = true;
-            CrashHandlerService.ReportException("App.UnhandledException", args.Exception, isFatal: false, extraMessage: args.Message);
+            CrashHandlerService.ReportException("App.DispatcherUnhandledException", args.Exception, isFatal: false);
         };
     }
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override void OnStartup(StartupEventArgs e)
     {
+        base.OnStartup(e);
+
         try
         {
             var mainWindow = new MainWindow();
-            _window = mainWindow;
+            MainWindow = mainWindow;
             CrashHandlerService.RegisterMainWindow(mainWindow);
-            mainWindow.Activate();
+            mainWindow.Show();
         }
         catch (Exception ex)
         {
-            CrashHandlerService.ReportException("App.OnLaunched", ex, isFatal: true);
+            CrashHandlerService.ReportException("App.OnStartup", ex, isFatal: true);
+            Shutdown(1);
         }
     }
 }

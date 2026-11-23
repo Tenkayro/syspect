@@ -8,10 +8,7 @@
     <AssemblyName>syspect</AssemblyName>
     <AssemblyTitle>syspect</AssemblyTitle>
     <Description>Native Windows 11 system diagnostics, repair, and maintenance utility</Description>
-    <UseWinUI>true</UseWinUI>
-    <WindowsPackageType>None</WindowsPackageType>
-    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
-    <EnableMsixTooling>true</EnableMsixTooling>
+    <UseWPF>true</UseWPF>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>
@@ -19,70 +16,27 @@
     <ApplicationIcon>Assets\syspect.ico</ApplicationIcon>
     <DefaultLanguage>en-US</DefaultLanguage>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
-    <TieredPGO>true</TieredPGO>
+    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>partial</TrimMode>
-    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
-    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
-    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
-    <DebuggerSupport Condition="'$(Configuration)' == 'Release'">false</DebuggerSupport>
-    <EventSourceSupport>false</EventSourceSupport>
-    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
-    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
-    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
-    <UseSystemResourceKeys>false</UseSystemResourceKeys>
-    <MetricsSupport>false</MetricsSupport>
-    <StartupHookSupport>false</StartupHookSupport>
-    <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
-    <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
-    <NoWarn>$(NoWarn);IL2026;IL2072;IL2075;IL2104;IL3000;IL3050</NoWarn>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
-    <TrimmerRootAssembly Include="syspect" />
-    <TrimmerRootAssembly Include="Syspect.Core" />
-    <TrimmerRootAssembly Include="System.Management" />
-    <TrimmerRootAssembly Include="Microsoft.WinUI" />
-    <TrimmerRootAssembly Include="WinRT.Runtime" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Manifest Include="$(ApplicationManifest)" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Update="Assets\syspect.ico;Assets\syspect.png" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="Assets\syspect.ico" />
+    <Resource Include="Assets\syspect.png" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
-    <!-- Modular WindowsAppSDK 1.8 packages (omits Runtime, AI, ML, and Widgets to keep binary footprint small) -->
-    <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="1.8.251216001" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="1.8.260803002" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="1.8.260708001" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
-    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="1.8.25122902" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Syspect.Core\Syspect.Core.csproj" />
   </ItemGroup>
-
-  <Target Name="PruneUnusedWinUiLocales"
-          AfterTargets="AddMicrosoftWindowsAppSDKPayloadFilesFromComponents"
-          BeforeTargets="AssignTargetPaths;CoreCompile">
-    <ItemGroup>
-      <None Remove="@(None)"
-            Condition="'%(None.Extension)' == '.mui' and !$([System.String]::Copy('%(None.Link)').StartsWith('en-us\', System.StringComparison.OrdinalIgnoreCase))" />
-    </ItemGroup>
-  </Target>
 
 </Project>

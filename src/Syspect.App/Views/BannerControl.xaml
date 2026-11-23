@@ -1,0 +1,48 @@
+<UserControl
+    x:Class="Syspect.App.Views.BannerControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    x:Name="Root">
+
+    <Border Visibility="{Binding IsOpen, ElementName=Root, Converter={StaticResource BoolToVis}}"
+            Background="{Binding Severity, ElementName=Root, Converter={StaticResource BannerBrush}, ConverterParameter=Background}"
+            BorderBrush="{Binding Severity, ElementName=Root, Converter={StaticResource BannerBrush}, ConverterParameter=Border}"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="12,9"
+            Margin="0,0,0,4">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       FontFamily="Segoe Fluent Icons"
+                       FontSize="15"
+                       Text="{Binding Severity, ElementName=Root, Converter={StaticResource BannerGlyph}}"
+                       Foreground="{Binding Severity, ElementName=Root, Converter={StaticResource BannerBrush}, ConverterParameter=Accent}"
+                       VerticalAlignment="Center"
+                       Margin="0,0,10,0" />
+
+            <TextBlock Grid.Column="1"
+                       Text="{Binding Message, ElementName=Root}"
+                       Foreground="{StaticResource TextPrimaryBrush}"
+                       FontSize="13"
+                       TextWrapping="Wrap"
+                       VerticalAlignment="Center" />
+
+            <Button Grid.Column="2"
+                    Content="&#xE711;"
+                    FontFamily="Segoe Fluent Icons"
+                    FontSize="11"
+                    Padding="7,4"
+                    Margin="10,0,0,0"
+                    Background="Transparent"
+                    BorderBrush="Transparent"
+                    VerticalAlignment="Center"
+                    Click="CloseButton_Click" />
+        </Grid>
+    </Border>
+</UserControl>

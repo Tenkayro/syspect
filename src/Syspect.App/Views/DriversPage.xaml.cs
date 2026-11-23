@@ -1,15 +1,16 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
 using Syspect.App.ViewModels;
 
 namespace Syspect.App.Views;
 
-public sealed partial class DriversPage : Page
+public partial class DriversPage : UserControl
 {
     public DriversViewModel ViewModel { get; } = new();
 
     public DriversPage()
     {
+        DataContext = ViewModel;
         InitializeComponent();
         Loaded += async (_, _) =>
         {

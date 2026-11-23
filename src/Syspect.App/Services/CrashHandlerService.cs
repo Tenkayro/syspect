@@ -1,17 +1,16 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
-using Microsoft.UI.Text;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Syspect.Core.Services;
 
 namespace Syspect.App.Services;
 
 /// <summary>
-/// Captures unhandled UI, navigation, AppDomain, and Task exceptions, writes crash logs to disk,
-/// and surfaces a copyable crash report dialog (with native Win32 clipboard + MessageBox fallback).
+/// Captures unhandled UI, AppDomain, and Task exceptions, writes crash logs to disk,
+/// and surfaces a copyable crash report window (with native Win32 clipboard + MessageBox fallback).
 /// </summary>
 public static class CrashHandlerService
 {
@@ -41,20 +40,13 @@ public static class CrashHandlerService
             return;
         }
 
-        if (!isFatal && _mainWindow is { } window && window.DispatcherQueue is { } queue)
+        if (!isFatal && _mainWindow is { IsLoaded: true } window && window.Dispatcher is { HasShutdownStarted: false } dispatcher)
         {
-            var enqueued = queue.TryEnqueue(async () =>
+            dispatcher.BeginInvoke(() =>
             {
                 try
                 {
-                    var xamlRoot = window.DialogXamlRoot;
-                    if (xamlRoot is null)
-                    {
-                        ShowWin32CrashFallback(summary, report, logPath);
-                        return;
-                    }
-
-                    await ShowCrashDialogAsync(xamlRoot, source, summary, report, logPath);
+                    ShowCrashWindow(window, source, summary, report, logPath);
                 }
                 catch
                 {
@@ -65,11 +57,7 @@ public static class CrashHandlerService
                     Interlocked.Exchange(ref _dialogActive, 0);
                 }
             });
-
-            if (enqueued)
-            {
-                return;
-            }
+            return;
         }
 
         try
@@ -130,28 +118,49 @@ public static class CrashHandlerService
         return (reportText, logPath);
     }
 
-    private static async Task ShowCrashDialogAsync(
-        XamlRoot xamlRoot,
+    private static void ShowCrashWindow(
+        Window owner,
         string source,
         string summary,
         string reportText,
         string? logPath)
     {
+        var dialog = new Window
+        {
+            Title = "syspect — Crash Report",
+            Width = 680,
+            SizeToContent = SizeToContent.Height,
+            ResizeMode = ResizeMode.NoResize,
+            ShowInTaskbar = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            Owner = owner,
+            Background = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1C)),
+            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3))
+        };
+
+        WindowThemeHelper.ApplyDarkTitleBar(dialog);
+
         var headerText = new TextBlock
         {
             Text = $"{source} — {summary}",
             FontWeight = FontWeights.SemiBold,
-            TextWrapping = TextWrapping.Wrap
+            FontSize = 14,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(0, 0, 0, 6)
         };
 
-        var logLocationText = new TextBlock
+        var logLocationBox = new TextBox
         {
             Text = logPath is not null
                 ? $"Saved crash log: {logPath}"
                 : "Could not write crash log file to disk.",
+            IsReadOnly = true,
+            BorderThickness = new Thickness(0),
+            Background = Brushes.Transparent,
+            Foreground = new SolidColorBrush(Color.FromRgb(0xA6, 0xA6, 0xA6)),
             FontSize = 12,
             TextWrapping = TextWrapping.Wrap,
-            IsTextSelectionEnabled = true
+            Margin = new Thickness(0, 0, 0, 10)
         };
 
         var stackBox = new TextBox
@@ -160,51 +169,71 @@ public static class CrashHandlerService
             IsReadOnly = true,
             AcceptsReturn = true,
             TextWrapping = TextWrapping.NoWrap,
-            MaxHeight = 300,
+            Height = 300,
             FontFamily = new FontFamily("Consolas"),
-            FontSize = 11
-        };
-        ScrollViewer.SetHorizontalScrollBarVisibility(stackBox, ScrollBarVisibility.Auto);
-        ScrollViewer.SetVerticalScrollBarVisibility(stackBox, ScrollBarVisibility.Auto);
-
-        var container = new StackPanel
-        {
-            Spacing = 10,
-            MinWidth = 520,
-            Children = { headerText, logLocationText, stackBox }
-        };
-
-        var dialog = new ContentDialog
-        {
-            XamlRoot = xamlRoot,
-            Title = "syspect — Crash Report",
-            Content = container,
-            PrimaryButtonText = "Copy Crash Log",
-            SecondaryButtonText = "Open Logs Folder",
-            CloseButtonText = "Close",
-            DefaultButton = ContentDialogButton.Primary,
-            IsSecondaryButtonEnabled = !string.IsNullOrWhiteSpace(logPath)
+            FontSize = 11,
+            Background = new SolidColorBrush(Color.FromRgb(0x15, 0x15, 0x15)),
+            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3)),
+            BorderBrush = new SolidColorBrush(Color.FromRgb(0x35, 0x35, 0x35)),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(10),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Margin = new Thickness(0, 0, 0, 14)
         };
 
-        dialog.PrimaryButtonClick += (sender, args) =>
+        var copyBtn = new Button
         {
-            args.Cancel = true;
+            Content = "Copy Crash Log",
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        if (Application.Current?.TryFindResource("AccentButtonStyle") is Style accentStyle)
+        {
+            copyBtn.Style = accentStyle;
+        }
+        copyBtn.Click += (_, _) =>
+        {
             if (TryCopyToClipboardWin32(reportText))
             {
-                sender.PrimaryButtonText = "Copied!";
+                copyBtn.Content = "Copied!";
             }
         };
 
-        dialog.SecondaryButtonClick += (_, args) =>
+        var openFolderBtn = new Button
         {
-            args.Cancel = true;
+            Content = "Open Logs Folder",
+            IsEnabled = !string.IsNullOrWhiteSpace(logPath),
+            Margin = new Thickness(0, 0, 8, 0)
+        };
+        openFolderBtn.Click += (_, _) =>
+        {
             if (!string.IsNullOrWhiteSpace(logPath))
             {
                 OpenFolderForFile(logPath);
             }
         };
 
-        await dialog.ShowAsync();
+        var closeBtn = new Button
+        {
+            Content = "Close",
+            IsCancel = true
+        };
+        closeBtn.Click += (_, _) => dialog.Close();
+
+        var buttonRow = new StackPanel
+        {
+            Orientation = Orientation.Horizontal,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            Children = { openFolderBtn, copyBtn, closeBtn }
+        };
+
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(20),
+            Children = { headerText, logLocationBox, stackBox, buttonRow }
+        };
+
+        dialog.ShowDialog();
     }
 
     private static void ShowWin32CrashFallback(string summary, string reportText, string? logPath)

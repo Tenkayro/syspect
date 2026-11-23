@@ -1,5 +1,4 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Xaml.Controls;
 using Syspect.App.Services;
 using Syspect.Core.Models;
 using Syspect.Core.Services;
@@ -17,7 +16,7 @@ public sealed class DashboardViewModel : ObservableObject
     private DriverAuditResult? _driverAudit;
     private FirewallAuditResult? _firewallAudit;
     private string _bannerMessage = string.Empty;
-    private InfoBarSeverity _bannerSeverity = InfoBarSeverity.Informational;
+    private BannerSeverity _bannerSeverity = BannerSeverity.Info;
     private bool _isBannerOpen;
 
     public bool IsLoading { get => _isLoading; set => SetProperty(ref _isLoading, value); }
@@ -28,7 +27,7 @@ public sealed class DashboardViewModel : ObservableObject
     public FirewallAuditResult? FirewallAudit { get => _firewallAudit; private set => SetProperty(ref _firewallAudit, value); }
 
     public string BannerMessage { get => _bannerMessage; set => SetProperty(ref _bannerMessage, value); }
-    public InfoBarSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
+    public BannerSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
     public bool IsBannerOpen { get => _isBannerOpen; set => SetProperty(ref _isBannerOpen, value); }
 
     public string CurrentVersionDisplay => $"Check for Updates (v{UpdateService.GetCurrentVersion()})";
@@ -95,7 +94,7 @@ public sealed class DashboardViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ShowBanner($"Failed to load overview: {ex.Message}", InfoBarSeverity.Error);
+            ShowBanner($"Failed to load overview: {ex.Message}", BannerSeverity.Error);
         }
         finally
         {
@@ -110,14 +109,14 @@ public sealed class DashboardViewModel : ObservableObject
         try
         {
             var summary = await _services.QuickCleanup.RunSafeOneClickCleanupAsync();
-            ShowBanner(string.Join(" | ", summary.Details), InfoBarSeverity.Success);
+            ShowBanner(string.Join(" | ", summary.Details), BannerSeverity.Success);
             FirewallAudit = await _services.FirewallAudit.AuditAsync();
             OnPropertyChanged(nameof(FirewallHeadline));
             OnPropertyChanged(nameof(FirewallSubtext));
         }
         catch (Exception ex)
         {
-            ShowBanner($"Cleanup failed: {ex.Message}", InfoBarSeverity.Error);
+            ShowBanner($"Cleanup failed: {ex.Message}", BannerSeverity.Error);
         }
         finally
         {
@@ -132,11 +131,11 @@ public sealed class DashboardViewModel : ObservableObject
         try
         {
             var (ok, msg) = await _services.QuickCleanup.RestartNvidiaTrayAsync();
-            ShowBanner(msg, ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
+            ShowBanner(msg, ok ? BannerSeverity.Success : BannerSeverity.Warning);
         }
         catch (Exception ex)
         {
-            ShowBanner($"Error: {ex.Message}", InfoBarSeverity.Error);
+            ShowBanner($"Error: {ex.Message}", BannerSeverity.Error);
         }
         finally
         {
@@ -169,9 +168,9 @@ public sealed class DashboardViewModel : ObservableObject
             var result = await _services.Updates.CheckForUpdatesAsync();
             var severity = result.Status switch
             {
-                UpdateStatus.UpToDate => InfoBarSeverity.Success,
-                UpdateStatus.Error => InfoBarSeverity.Warning,
-                _ => InfoBarSeverity.Informational
+                UpdateStatus.UpToDate => BannerSeverity.Success,
+                UpdateStatus.Error => BannerSeverity.Warning,
+                _ => BannerSeverity.Info
             };
             ShowBanner(result.Message, severity);
             return result;
@@ -182,7 +181,7 @@ public sealed class DashboardViewModel : ObservableObject
         }
     }
 
-    private void ShowBanner(string message, InfoBarSeverity severity)
+    private void ShowBanner(string message, BannerSeverity severity)
     {
         BannerMessage = message;
         BannerSeverity = severity;

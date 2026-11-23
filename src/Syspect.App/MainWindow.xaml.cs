@@ -1,91 +1,54 @@
-using Microsoft.UI.Windowing;
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using Syspect.App.Services;
 using Syspect.App.Views;
 using Syspect.Core.Models;
 using Syspect.Core.Services;
-using Windows.Graphics;
-using Windows.UI;
 
 namespace Syspect.App;
 
-public sealed partial class MainWindow : Window
+public partial class MainWindow : Window
 {
+    private readonly Dictionary<Type, UserControl> _pageCache = [];
+    private Type? _currentPageType;
     private UpdateCheckResult? _pendingUpdate;
     private bool _isUpdateDialogOpen;
-
-    internal XamlRoot? DialogXamlRoot => NavView?.XamlRoot;
 
     public MainWindow()
     {
         InitializeComponent();
-        SystemBackdrop = new MicaBackdrop();
-
-        ConfigureWindow();
+        WindowThemeHelper.ApplyDarkTitleBar(this);
         UpdateAdminHeader();
 
-        ContentFrame.NavigationFailed += (_, args) =>
-        {
-            args.Handled = true;
-            CrashHandlerService.ReportException($"Frame.NavigationFailed ({args.SourcePageType?.Name})", args.Exception);
-        };
-
         AppServices.Current.NavigateRequested = NavigateToPage;
-        NavView.SelectedItem = NavView.MenuItems[0];
-        NavView.Loaded += NavView_Loaded;
-    }
-
-    private void ConfigureWindow()
-    {
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-
-        if (AppWindow is not null)
-        {
-            var iconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "syspect.ico");
-            if (File.Exists(iconPath))
-            {
-                AppWindow.SetIcon(iconPath);
-            }
-
-            AppWindow.Resize(new SizeInt32(1280, 840));
-            var area = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Primary);
-            if (area is not null)
-            {
-                var x = area.WorkArea.X + (area.WorkArea.Width - 1280) / 2;
-                var y = area.WorkArea.Y + (area.WorkArea.Height - 840) / 2;
-                AppWindow.Move(new PointInt32(Math.Max(0, x), Math.Max(0, y)));
-            }
-
-            if (AppWindow.Presenter is OverlappedPresenter presenter)
-            {
-                presenter.PreferredMinimumWidth = 980;
-                presenter.PreferredMinimumHeight = 660;
-            }
-        }
+        NavDashboard.IsChecked = true;
+        Loaded += MainWindow_Loaded;
     }
 
     private void UpdateAdminHeader()
     {
         if (AdminHelper.IsAdministrator())
         {
-            AdminBadge.Background = new SolidColorBrush(Color.FromArgb(45, 16, 185, 129));
+            var bg = new SolidColorBrush(Color.FromArgb(45, 16, 185, 129));
+            bg.Freeze();
+            AdminBadge.Background = bg;
             AdminBadgeText.Text = "Admin";
             ElevateButton.Visibility = Visibility.Collapsed;
         }
         else
         {
-            AdminBadge.Background = new SolidColorBrush(Color.FromArgb(50, 245, 158, 11));
+            var bg = new SolidColorBrush(Color.FromArgb(50, 245, 158, 11));
+            bg.Freeze();
+            AdminBadge.Background = bg;
             AdminBadgeText.Text = "Standard User";
             ElevateButton.Visibility = Visibility.Visible;
         }
     }
 
-    private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void NavItem_Checked(object sender, RoutedEventArgs e)
     {
-        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
+        if (sender is RadioButton { Tag: string tag })
         {
             var pageType = tag switch
             {
@@ -98,66 +61,79 @@ public sealed partial class MainWindow : Window
                 _ => typeof(DashboardPage)
             };
 
-            if (ContentFrame.CurrentSourcePageType != pageType)
-            {
-                try
-                {
-                    ContentFrame.Navigate(pageType);
-                }
-                catch (Exception ex)
-                {
-                    CrashHandlerService.ReportException($"Navigate ({pageType.Name})", ex);
-                }
-            }
+            ShowPage(pageType);
         }
     }
 
     private void NavigateToPage(Type pageType, object? parameter)
     {
-        var tag = pageType.Name switch
+        var navBtn = pageType.Name switch
         {
-            nameof(DashboardPage) => "Dashboard",
-            nameof(RepairPage) => "Repair",
-            nameof(DriversPage) => "Drivers",
-            nameof(StartupServicesPage) => "StartupServices",
-            nameof(FirewallPage) => "Firewall",
-            nameof(LogsPage) => "Logs",
-            _ => "Dashboard"
+            nameof(DashboardPage) => NavDashboard,
+            nameof(RepairPage) => NavRepair,
+            nameof(DriversPage) => NavDrivers,
+            nameof(StartupServicesPage) => NavStartupServices,
+            nameof(FirewallPage) => NavFirewall,
+            nameof(LogsPage) => NavLogs,
+            _ => NavDashboard
         };
 
-        foreach (var obj in NavView.MenuItems)
+        if (navBtn.IsChecked != true)
         {
-            if (obj is NavigationViewItem navItem && Equals(navItem.Tag, tag))
-            {
-                NavView.SelectedItem = navItem;
-                break;
-            }
+            navBtn.IsChecked = true;
         }
-
-        if (ContentFrame.CurrentSourcePageType != pageType)
+        else
         {
-            try
-            {
-                ContentFrame.Navigate(pageType, parameter);
-            }
-            catch (Exception ex)
-            {
-                CrashHandlerService.ReportException($"Navigate ({pageType.Name})", ex);
-            }
+            ShowPage(pageType);
         }
     }
+
+    private void ShowPage(Type pageType)
+    {
+        if (_currentPageType == pageType)
+        {
+            return;
+        }
+
+        try
+        {
+            if (!_pageCache.TryGetValue(pageType, out var view))
+            {
+                view = CreateViewForType(pageType);
+                _pageCache[pageType] = view;
+            }
+
+            _currentPageType = pageType;
+            PageHost.Content = view;
+        }
+        catch (Exception ex)
+        {
+            CrashHandlerService.ReportException($"Navigate ({pageType.Name})", ex);
+        }
+    }
+
+    private static UserControl CreateViewForType(Type pageType) => pageType.Name switch
+    {
+        nameof(DashboardPage) => new DashboardPage(),
+        nameof(RepairPage) => new RepairPage(),
+        nameof(DriversPage) => new DriversPage(),
+        nameof(StartupServicesPage) => new StartupServicesPage(),
+        nameof(FirewallPage) => new FirewallPage(),
+        nameof(LogsPage) => new LogsPage(),
+        _ => new DashboardPage()
+    };
 
     private void ElevateButton_Click(object sender, RoutedEventArgs e)
     {
         if (AdminHelper.TryRestartElevated())
         {
-            Application.Current.Exit();
+            Application.Current.Shutdown();
         }
     }
 
-    private void NavView_Loaded(object sender, RoutedEventArgs e)
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        NavView.Loaded -= NavView_Loaded;
+        Loaded -= MainWindow_Loaded;
         _ = CheckForUpdatesSilentlyAsync();
     }
 
@@ -167,7 +143,7 @@ public sealed partial class MainWindow : Window
         var result = await AppServices.Current.Updates.CheckForUpdatesAsync();
         if (result.IsUpdateAvailable && result.LatestRelease is { } release)
         {
-            DispatcherQueue.TryEnqueue(() =>
+            _ = Dispatcher.BeginInvoke(() =>
             {
                 _pendingUpdate = result;
                 UpdateAvailableText.Text = $"Update v{release.Version}";
@@ -176,9 +152,9 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async void UpdateAvailableButton_Click(object sender, RoutedEventArgs e)
+    private void UpdateAvailableButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_pendingUpdate is null || _isUpdateDialogOpen || NavView.XamlRoot is null)
+        if (_pendingUpdate is null || _isUpdateDialogOpen)
         {
             return;
         }
@@ -186,7 +162,7 @@ public sealed partial class MainWindow : Window
         _isUpdateDialogOpen = true;
         try
         {
-            await UpdateDialogHelper.ShowUpdateDialogAsync(NavView.XamlRoot, AppServices.Current.Updates, _pendingUpdate);
+            UpdateDialogHelper.ShowUpdateDialog(this, AppServices.Current.Updates, _pendingUpdate);
         }
         finally
         {

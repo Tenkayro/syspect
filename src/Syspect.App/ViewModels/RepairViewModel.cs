@@ -1,9 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text;
+using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml.Controls;
 using Syspect.App.Services;
 using Syspect.Core.Models;
 using Syspect.Core.Services;
@@ -96,7 +95,7 @@ public sealed class RepairViewModel : ObservableObject
     private string _lastSavedLogPath = string.Empty;
     private CbsRepairReport? _cbsReport;
     private string _bannerMessage = string.Empty;
-    private InfoBarSeverity _bannerSeverity = InfoBarSeverity.Informational;
+    private BannerSeverity _bannerSeverity = BannerSeverity.Info;
     private bool _isBannerOpen;
 
     public ObservableCollection<RepairStepItemViewModel> Steps { get; } = new(
@@ -115,7 +114,7 @@ public sealed class RepairViewModel : ObservableObject
     public CbsRepairReport? CbsReport { get => _cbsReport; private set => SetProperty(ref _cbsReport, value); }
 
     public string BannerMessage { get => _bannerMessage; set => SetProperty(ref _bannerMessage, value); }
-    public InfoBarSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
+    public BannerSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
     public bool IsBannerOpen { get => _isBannerOpen; set => SetProperty(ref _isBannerOpen, value); }
 
     public async Task LoadCbsSummaryAsync()
@@ -123,7 +122,7 @@ public sealed class RepairViewModel : ObservableObject
         CbsReport = await _services.CbsParser.ParseAsync();
     }
 
-    public async Task StartPipelineAsync(DispatcherQueue dispatcher, Action scrollConsoleToEnd)
+    public async Task StartPipelineAsync(Dispatcher dispatcher, Action scrollConsoleToEnd)
     {
         if (IsRunning) return;
 
@@ -131,7 +130,7 @@ public sealed class RepairViewModel : ObservableObject
         if (selected.Count == 0)
         {
             BannerMessage = "Select at least one repair step.";
-            BannerSeverity = InfoBarSeverity.Warning;
+            BannerSeverity = BannerSeverity.Warning;
             IsBannerOpen = true;
             return;
         }
@@ -162,7 +161,7 @@ public sealed class RepairViewModel : ObservableObject
         _cts = new CancellationTokenSource();
         var progress = new Progress<RepairProgressUpdate>(update =>
         {
-            dispatcher.TryEnqueue(() =>
+            _ = dispatcher.BeginInvoke(() =>
             {
                 var activeItem = update.StepId.HasValue
                     ? Steps.FirstOrDefault(s => s.Id == update.StepId.Value)
@@ -301,7 +300,7 @@ public sealed class RepairViewModel : ObservableObject
             BannerMessage = anyError
                 ? "One or more steps exited with a non-zero code. Review the console log for details."
                 : "Pipeline finished cleanly and log was saved.";
-            BannerSeverity = anyError ? InfoBarSeverity.Warning : InfoBarSeverity.Success;
+            BannerSeverity = anyError ? BannerSeverity.Warning : BannerSeverity.Success;
             IsBannerOpen = true;
 
             await LoadCbsSummaryAsync();
@@ -310,7 +309,7 @@ public sealed class RepairViewModel : ObservableObject
         {
             CurrentStepText = $"Error: {ex.Message}";
             BannerMessage = ex.Message;
-            BannerSeverity = InfoBarSeverity.Error;
+            BannerSeverity = BannerSeverity.Error;
             IsBannerOpen = true;
         }
         finally
@@ -345,7 +344,7 @@ public sealed class RepairViewModel : ObservableObject
             BannerMessage = ok
                 ? "chkdsk C: /f scheduled for the next Windows reboot."
                 : $"Could not schedule chkdsk: {msg}";
-            BannerSeverity = ok ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+            BannerSeverity = ok ? BannerSeverity.Success : BannerSeverity.Warning;
             IsBannerOpen = true;
         }
         finally

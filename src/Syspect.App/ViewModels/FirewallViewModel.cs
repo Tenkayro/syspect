@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Xaml.Controls;
 using Syspect.App.Services;
 using Syspect.Core.Models;
 
@@ -28,7 +27,7 @@ public sealed class FirewallViewModel : ObservableObject
     private int _selectedTabIndex;
     private FirewallAuditResult? _auditResult;
     private string _bannerMessage = string.Empty;
-    private InfoBarSeverity _bannerSeverity = InfoBarSeverity.Informational;
+    private BannerSeverity _bannerSeverity = BannerSeverity.Info;
     private bool _isBannerOpen;
 
     public ObservableCollection<FirewallProfileStatus> Profiles { get; } = [];
@@ -55,7 +54,7 @@ public sealed class FirewallViewModel : ObservableObject
 
     public FirewallAuditResult? AuditResult { get => _auditResult; private set => SetProperty(ref _auditResult, value); }
     public string BannerMessage { get => _bannerMessage; set => SetProperty(ref _bannerMessage, value); }
-    public InfoBarSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
+    public BannerSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
     public bool IsBannerOpen { get => _isBannerOpen; set => SetProperty(ref _isBannerOpen, value); }
 
     public async Task LoadAsync()
@@ -78,7 +77,7 @@ public sealed class FirewallViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ShowBanner($"Failed to audit firewall: {ex.Message}", InfoBarSeverity.Error);
+            ShowBanner($"Failed to audit firewall: {ex.Message}", BannerSeverity.Error);
         }
         finally
         {
@@ -91,7 +90,7 @@ public sealed class FirewallViewModel : ObservableObject
         var selected = OrphanedRules.Where(x => x.IsChecked).Select(x => x.Rule).ToList();
         if (selected.Count == 0)
         {
-            ShowBanner("No rules selected.", InfoBarSeverity.Warning);
+            ShowBanner("No rules selected.", BannerSeverity.Warning);
             return;
         }
 
@@ -107,7 +106,7 @@ public sealed class FirewallViewModel : ObservableObject
 
         if (targets.Count == 0)
         {
-            ShowBanner("No Downloads or legacy leftover rules remaining.", InfoBarSeverity.Informational);
+            ShowBanner("No Downloads or legacy leftover rules remaining.", BannerSeverity.Info);
             return;
         }
 
@@ -131,11 +130,11 @@ public sealed class FirewallViewModel : ObservableObject
             IsLoading = false;
         }
 
-        ShowBanner($"Removed {okCount} of {rules.Count} firewall rule(s).", okCount > 0 ? InfoBarSeverity.Success : InfoBarSeverity.Warning);
+        ShowBanner($"Removed {okCount} of {rules.Count} firewall rule(s).", okCount > 0 ? BannerSeverity.Success : BannerSeverity.Warning);
         await LoadAsync();
     }
 
-    private void ShowBanner(string message, InfoBarSeverity severity)
+    private void ShowBanner(string message, BannerSeverity severity)
     {
         BannerMessage = message;
         BannerSeverity = severity;

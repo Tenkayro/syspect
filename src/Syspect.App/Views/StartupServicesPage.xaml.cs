@@ -1,16 +1,17 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
 using Syspect.App.ViewModels;
 using Syspect.Core.Models;
 
 namespace Syspect.App.Views;
 
-public sealed partial class StartupServicesPage : Page
+public partial class StartupServicesPage : UserControl
 {
     public StartupServicesViewModel ViewModel { get; } = new();
 
     public StartupServicesPage()
     {
+        DataContext = ViewModel;
         InitializeComponent();
         Loaded += async (_, _) =>
         {
@@ -26,11 +27,11 @@ public sealed partial class StartupServicesPage : Page
         await ViewModel.LoadAsync();
     }
 
-    private void TabSelector_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    private void TabRadio_Checked(object sender, RoutedEventArgs e)
     {
-        if (sender.SelectedItem is not null)
+        if (sender is RadioButton { Tag: string tag } && int.TryParse(tag, out int index))
         {
-            ViewModel.SelectedTabIndex = sender.Items.IndexOf(sender.SelectedItem);
+            ViewModel.SelectedTabIndex = index;
         }
     }
 
@@ -46,7 +47,7 @@ public sealed partial class StartupServicesPage : Page
     {
         if (sender is FrameworkElement { Tag: ServiceEntryViewModel entry })
         {
-            if (entry.IsRunning && !await ConfirmIfCautionAsync(entry.Model, "stop")) return;
+            if (entry.IsRunning && !ConfirmIfCaution(entry.Model, "stop")) return;
             await ViewModel.ToggleServiceRunningAsync(entry.Model);
         }
     }
@@ -55,7 +56,7 @@ public sealed partial class StartupServicesPage : Page
     {
         if (sender is FrameworkElement { Tag: ServiceEntryViewModel entry })
         {
-            if (!await ConfirmIfCautionAsync(entry.Model, "set to Manual")) return;
+            if (!ConfirmIfCaution(entry.Model, "set to Manual")) return;
             await ViewModel.ChangeServiceStartModeAsync(entry.Model, "demand");
         }
     }
@@ -64,7 +65,7 @@ public sealed partial class StartupServicesPage : Page
     {
         if (sender is FrameworkElement { Tag: ServiceEntryViewModel entry })
         {
-            if (!await ConfirmIfCautionAsync(entry.Model, "disable")) return;
+            if (!ConfirmIfCaution(entry.Model, "disable")) return;
             await ViewModel.ChangeServiceStartModeAsync(entry.Model, "disabled");
         }
     }
@@ -89,37 +90,27 @@ public sealed partial class StartupServicesPage : Page
     {
         if (sender is FrameworkElement { Tag: ScheduledTaskViewModel task })
         {
-            var dialog = new ContentDialog
-            {
-                Title = "Delete Scheduled Task?",
-                Content = $"Permanently delete scheduled task '{task.FullPath}'?",
-                PrimaryButtonText = "Delete",
-                CloseButtonText = "Cancel",
-                DefaultButton = ContentDialogButton.Close,
-                XamlRoot = this.XamlRoot
-            };
+            var ok = DialogHelper.ShowConfirmDialog(
+                Window.GetWindow(this),
+                "Delete Scheduled Task?",
+                $"Permanently delete scheduled task '{task.FullPath}'?",
+                "Delete");
 
-            if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+            if (ok)
             {
                 await ViewModel.DeleteTaskAsync(task.Model);
             }
         }
     }
 
-    private async Task<bool> ConfirmIfCautionAsync(ServiceEntry entry, string actionText)
+    private bool ConfirmIfCaution(ServiceEntry entry, string actionText)
     {
         if (entry.SafetyTier != SafetyTier.Caution) return true;
 
-        var dialog = new ContentDialog
-        {
-            Title = $"Caution: '{entry.DisplayName}'",
-            Content = $"{entry.CategoryNote}\n\nAre you sure you want to {actionText} this service?",
-            PrimaryButtonText = "Continue",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Close,
-            XamlRoot = this.XamlRoot
-        };
-
-        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        return DialogHelper.ShowConfirmDialog(
+            Window.GetWindow(this),
+            $"Caution: '{entry.DisplayName}'",
+            $"{entry.CategoryNote}\n\nAre you sure you want to {actionText} this service?",
+            "Continue");
     }
 }

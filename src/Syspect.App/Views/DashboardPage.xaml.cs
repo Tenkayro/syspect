@@ -1,16 +1,19 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
 using Syspect.App.Services;
 using Syspect.App.ViewModels;
 
 namespace Syspect.App.Views;
 
-public sealed partial class DashboardPage : Page
+public partial class DashboardPage : UserControl
 {
+    private bool _isUpdateDialogOpen;
+
     public DashboardViewModel ViewModel { get; } = new();
 
     public DashboardPage()
     {
+        DataContext = ViewModel;
         InitializeComponent();
         Loaded += async (_, _) =>
         {
@@ -38,23 +41,22 @@ public sealed partial class DashboardPage : Page
 
     private async void OneClickCleanupButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ContentDialog
-        {
-            Title = "Run Safe One-Click Cleanup?",
-            Content = "The following safe maintenance steps will be executed:\n• Disable DiagTrack (telemetry)\n• Remove orphaned Downloads/legacy firewall rules\n• Delete dead scheduled tasks (missing executables)\n• Clean stale user temporary files\n\nProtected services (SharedAccess, WSL, Audio/iLok, VMware) remain untouched.",
-            PrimaryButtonText = "Clean Up",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = this.XamlRoot
-        };
+        var ok = DialogHelper.ShowConfirmDialog(
+            Window.GetWindow(this),
+            "Run Safe One-Click Cleanup?",
+            "The following safe maintenance steps will be executed:\n" +
+            "• Disable DiagTrack (telemetry)\n" +
+            "• Remove orphaned Downloads/legacy firewall rules\n" +
+            "• Delete dead scheduled tasks (missing executables)\n" +
+            "• Clean stale user temporary files\n\n" +
+            "Protected services (SharedAccess, WSL, Audio/iLok, VMware) remain untouched.",
+            "Clean Up");
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (ok)
         {
             await ViewModel.RunOneClickCleanupAsync();
         }
     }
-
-    private bool _isUpdateDialogOpen;
 
     private async void RestartNvidiaButton_Click(object sender, RoutedEventArgs e)
     {
@@ -63,7 +65,7 @@ public sealed partial class DashboardPage : Page
 
     private async void CheckUpdatesButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_isUpdateDialogOpen || XamlRoot is null)
+        if (_isUpdateDialogOpen)
         {
             return;
         }
@@ -74,7 +76,7 @@ public sealed partial class DashboardPage : Page
             _isUpdateDialogOpen = true;
             try
             {
-                await UpdateDialogHelper.ShowUpdateDialogAsync(XamlRoot, AppServices.Current.Updates, result);
+                UpdateDialogHelper.ShowUpdateDialog(Window.GetWindow(this), AppServices.Current.Updates, result);
             }
             finally
             {

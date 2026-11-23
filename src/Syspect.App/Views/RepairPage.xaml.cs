@@ -1,15 +1,16 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
 using Syspect.App.ViewModels;
 
 namespace Syspect.App.Views;
 
-public sealed partial class RepairPage : Page
+public partial class RepairPage : UserControl
 {
     public RepairViewModel ViewModel { get; } = new();
 
     public RepairPage()
     {
+        DataContext = ViewModel;
         InitializeComponent();
         Loaded += async (_, _) =>
         {
@@ -23,8 +24,8 @@ public sealed partial class RepairPage : Page
     private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
         await ViewModel.StartPipelineAsync(
-            DispatcherQueue,
-            () => ConsoleScrollViewer.ChangeView(null, ConsoleScrollViewer.ScrollableHeight, null, disableAnimation: true));
+            Dispatcher,
+            () => ConsoleTextBox.ScrollToEnd());
     }
 
     private void CancelButton_Click(object sender, RoutedEventArgs e)
@@ -34,17 +35,13 @@ public sealed partial class RepairPage : Page
 
     private async void ScheduleChkdskButton_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new ContentDialog
-        {
-            Title = "Schedule chkdsk C: /f on Next Reboot?",
-            Content = "Windows will verify and repair the NTFS filesystem of drive C: before booting on the next restart.",
-            PrimaryButtonText = "Schedule",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = this.XamlRoot
-        };
+        var ok = DialogHelper.ShowConfirmDialog(
+            Window.GetWindow(this),
+            "Schedule chkdsk C: /f on Next Reboot?",
+            "Windows will verify and repair the NTFS filesystem of drive C: before booting on the next restart.",
+            "Schedule");
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (ok)
         {
             await ViewModel.ScheduleChkdskRebootAsync();
         }

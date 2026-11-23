@@ -1,15 +1,16 @@
-using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
+using System.Windows;
+using System.Windows.Controls;
 using Syspect.App.ViewModels;
 
 namespace Syspect.App.Views;
 
-public sealed partial class FirewallPage : Page
+public partial class FirewallPage : UserControl
 {
     public FirewallViewModel ViewModel { get; } = new();
 
     public FirewallPage()
     {
+        DataContext = ViewModel;
         InitializeComponent();
         Loaded += async (_, _) =>
         {
@@ -25,11 +26,11 @@ public sealed partial class FirewallPage : Page
         await ViewModel.LoadAsync();
     }
 
-    private void FwTabSelector_SelectionChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    private void FwTabRadio_Checked(object sender, RoutedEventArgs e)
     {
-        if (sender.SelectedItem is not null)
+        if (sender is RadioButton { Tag: string tag } && int.TryParse(tag, out int index))
         {
-            ViewModel.SelectedTabIndex = sender.Items.IndexOf(sender.SelectedItem);
+            ViewModel.SelectedTabIndex = index;
         }
     }
 
@@ -42,17 +43,13 @@ public sealed partial class FirewallPage : Page
             return;
         }
 
-        var dialog = new ContentDialog
-        {
-            Title = "Delete Selected Firewall Rules?",
-            Content = $"Permanently delete {count} selected orphaned firewall rule(s)?",
-            PrimaryButtonText = "Delete",
-            CloseButtonText = "Cancel",
-            DefaultButton = ContentDialogButton.Primary,
-            XamlRoot = this.XamlRoot
-        };
+        var ok = DialogHelper.ShowConfirmDialog(
+            Window.GetWindow(this),
+            "Delete Selected Firewall Rules?",
+            $"Permanently delete {count} selected orphaned firewall rule(s)?",
+            "Delete");
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        if (ok)
         {
             await ViewModel.DeleteSelectedOrphanedAsync();
         }

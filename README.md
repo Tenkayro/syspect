@@ -1,6 +1,6 @@
 # syspect
 
-Native Windows 11 system diagnostics, repair, and maintenance utility built with **WinUI 3** and **.NET 10** by [Tenkayro](https://tenkayro.de).
+Native Windows 11 system diagnostics, repair, and maintenance utility built with **WPF** and **.NET 10** by [Tenkayro](https://tenkayro.de).
 
 ## Features
 
@@ -22,7 +22,7 @@ Requires `.NET 10 SDK`, `Windows 10/11 SDK (10.0.26100.0)`, and `Node.js`.
 ```powershell
 npm test        # Run Syspect.Core unit and live read-only diagnostics tests
 npm run start   # Incremental Debug build and elevated launch
-npm run build   # Trimmed Release win-x64 single-file publish to ./publish
+npm run build   # Self-contained Release win-x64 single-file publish to ./publish
 npm run setup   # Build setup.msi installer + portable .exe + SHA256SUMS.txt in ./dist
 npm run release # Version bump, verify, build, push, and publish a GitHub Release (Tenkayro/syspect)
 ```

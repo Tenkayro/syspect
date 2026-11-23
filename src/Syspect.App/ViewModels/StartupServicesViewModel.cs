@@ -1,7 +1,6 @@
 using System.Collections.ObjectModel;
+using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using Syspect.App.Services;
 using Syspect.Core.Models;
 using Syspect.Core.Services;
@@ -89,7 +88,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     private string _searchText = string.Empty;
     private bool _onlyActionable;
     private string _bannerMessage = string.Empty;
-    private InfoBarSeverity _bannerSeverity = InfoBarSeverity.Informational;
+    private BannerSeverity _bannerSeverity = BannerSeverity.Info;
     private bool _isBannerOpen;
 
     public ObservableCollection<StartupItemViewModel> FilteredStartup { get; } = [];
@@ -136,7 +135,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     }
 
     public string BannerMessage { get => _bannerMessage; set => SetProperty(ref _bannerMessage, value); }
-    public InfoBarSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
+    public BannerSeverity BannerSeverity { get => _bannerSeverity; set => SetProperty(ref _bannerSeverity, value); }
     public bool IsBannerOpen { get => _isBannerOpen; set => SetProperty(ref _isBannerOpen, value); }
 
     public async Task LoadAsync()
@@ -160,7 +159,7 @@ public sealed class StartupServicesViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            ShowBanner($"Failed to load entries: {ex.Message}", InfoBarSeverity.Error);
+            ShowBanner($"Failed to load entries: {ex.Message}", BannerSeverity.Error);
         }
         finally
         {
@@ -171,7 +170,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     public async Task ToggleStartupAsync(StartupItem item)
     {
         var (ok, msg) = await _services.StartupAndServices.SetStartupItemEnabledAsync(item, !item.IsEnabled);
-        ShowBanner(msg, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+        ShowBanner(msg, ok ? BannerSeverity.Success : BannerSeverity.Error);
         if (ok)
         {
             _allStartup = (await _services.StartupAndServices.GetStartupItemsAsync())
@@ -185,7 +184,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     public async Task ChangeServiceStartModeAsync(ServiceEntry entry, string scMode)
     {
         var (ok, msg) = await _services.StartupAndServices.SetServiceStartModeAsync(entry.Name, scMode);
-        ShowBanner(msg, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+        ShowBanner(msg, ok ? BannerSeverity.Success : BannerSeverity.Error);
         if (ok)
         {
             _allServices = (await _services.StartupAndServices.GetServicesAsync())
@@ -199,7 +198,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     public async Task ToggleServiceRunningAsync(ServiceEntry entry)
     {
         var (ok, msg) = await _services.StartupAndServices.SetServiceRunningStateAsync(entry.Name, !entry.IsRunning);
-        ShowBanner(msg, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+        ShowBanner(msg, ok ? BannerSeverity.Success : BannerSeverity.Error);
         if (ok)
         {
             _allServices = (await _services.StartupAndServices.GetServicesAsync())
@@ -213,7 +212,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     public async Task ToggleTaskEnabledAsync(ScheduledTaskEntry task)
     {
         var (ok, msg) = await _services.StartupAndServices.SetTaskEnabledAsync(task.FullPath, !task.Enabled);
-        ShowBanner(msg, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+        ShowBanner(msg, ok ? BannerSeverity.Success : BannerSeverity.Error);
         if (ok)
         {
             _allTasks = (await _services.StartupAndServices.GetScheduledTasksAsync())
@@ -227,7 +226,7 @@ public sealed class StartupServicesViewModel : ObservableObject
     public async Task DeleteTaskAsync(ScheduledTaskEntry task)
     {
         var (ok, msg) = await _services.StartupAndServices.DeleteTaskAsync(task.FullPath);
-        ShowBanner(msg, ok ? InfoBarSeverity.Success : InfoBarSeverity.Error);
+        ShowBanner(msg, ok ? BannerSeverity.Success : BannerSeverity.Error);
         if (ok)
         {
             _allTasks = (await _services.StartupAndServices.GetScheduledTasksAsync())
@@ -339,7 +338,7 @@ public sealed class StartupServicesViewModel : ObservableObject
         }
     }
 
-    private void ShowBanner(string message, InfoBarSeverity severity)
+    private void ShowBanner(string message, BannerSeverity severity)
     {
         BannerMessage = message;
         BannerSeverity = severity;
