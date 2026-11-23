@@ -10,6 +10,7 @@
     <conv:SafetyTierToBrushConverter x:Key="SafetyTierBrush" />
     <conv:RepairStateToBrushConverter x:Key="RepairStateBrush" />
     <conv:BoolToStatusBrushConverter x:Key="BoolStatusBrush" />
+    <conv:BoolToNullableBoolConverter x:Key="BoolToNullableBool" />
 
     <Style x:Key="FluentCardStyle" TargetType="Border">
         <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />

@@ -3,6 +3,7 @@
     x:Class="Syspect.App.Views.RepairPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Syspect.App.ViewModels"
     NavigationCacheMode="Required">
 
     <Grid RowSpacing="12">
@@ -62,7 +63,7 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <ItemsControl ItemsSource="{x:Bind ViewModel.Steps}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate>
+                            <DataTemplate x:DataType="vm:RepairStepItemViewModel">
                                 <Border Margin="0,0,0,8" Padding="10,8" CornerRadius="6"
                                         Background="{ThemeResource LayerFillColorDefaultBrush}"
                                         BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -74,26 +75,26 @@
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
 
-                                        <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" MinWidth="0" Padding="0" VerticalAlignment="Top" />
+                                        <CheckBox IsChecked="{x:Bind IsSelected, Mode=TwoWay, Converter={StaticResource BoolToNullableBool}}" MinWidth="0" Padding="0" VerticalAlignment="Top" />
 
                                         <StackPanel Grid.Column="1" Spacing="2">
-                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" />
-                                            <TextBlock Text="{Binding SummaryText}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock FontSize="11" Style="{StaticResource MutedCaptionStyle}">
-                                                    <Run Text="Code:" />
-                                                    <Run Text="{Binding ExitCodeText}" />
-                                                </TextBlock>
-                                                <TextBlock FontSize="11" Style="{StaticResource MutedCaptionStyle}">
-                                                    <Run Text="Duration:" />
-                                                    <Run Text="{Binding DurationText}" />
-                                                </TextBlock>
+                                            <TextBlock Text="{x:Bind Title}" FontWeight="SemiBold" FontSize="13" />
+                                            <TextBlock Text="{x:Bind SummaryText, Mode=OneWay}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="Code:" FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
+                                                    <TextBlock Text="{x:Bind ExitCodeText, Mode=OneWay}" FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
+                                                </StackPanel>
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <TextBlock Text="Duration:" FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
+                                                    <TextBlock Text="{x:Bind DurationText, Mode=OneWay}" FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
+                                                </StackPanel>
                                             </StackPanel>
                                         </StackPanel>
 
                                         <Border Grid.Column="2" Style="{StaticResource StatusPillStyle}"
-                                                Background="{Binding State, Converter={StaticResource RepairStateBrush}}">
-                                            <TextBlock Text="{Binding StateLabel}" FontSize="11" FontWeight="SemiBold" />
+                                                Background="{x:Bind State, Mode=OneWay, Converter={StaticResource RepairStateBrush}}">
+                                            <TextBlock Text="{x:Bind StateLabel, Mode=OneWay}" FontSize="11" FontWeight="SemiBold" />
                                         </Border>
                                     </Grid>
                                 </Border>

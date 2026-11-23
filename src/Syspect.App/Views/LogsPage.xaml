@@ -3,6 +3,7 @@
     x:Class="Syspect.App.Views.LogsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:Syspect.Core.Models"
     NavigationCacheMode="Enabled">
 
     <Grid RowSpacing="12">
@@ -34,16 +35,16 @@
                 <ListView ItemsSource="{x:Bind ViewModel.LogFiles}"
                           SelectedItem="{x:Bind ViewModel.SelectedLog, Mode=TwoWay}">
                     <ListView.ItemTemplate>
-                        <DataTemplate>
+                        <DataTemplate x:DataType="models:LogFileEntry">
                             <StackPanel Padding="4,6" Spacing="2">
-                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                <TextBlock Style="{StaticResource MutedCaptionStyle}">
-                                    <Run Text="{Binding SourceLabel}" />
-                                    <Run Text=" · " />
-                                    <Run Text="{Binding ModifiedDisplay}" />
-                                    <Run Text=" · " />
-                                    <Run Text="{Binding SizeDisplay}" />
-                                </TextBlock>
+                                <TextBlock Text="{x:Bind FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                    <TextBlock Text="{x:Bind SourceLabel}" Style="{StaticResource MutedCaptionStyle}" />
+                                    <TextBlock Text="·" Style="{StaticResource MutedCaptionStyle}" />
+                                    <TextBlock Text="{x:Bind ModifiedDisplay}" Style="{StaticResource MutedCaptionStyle}" />
+                                    <TextBlock Text="·" Style="{StaticResource MutedCaptionStyle}" />
+                                    <TextBlock Text="{x:Bind SizeDisplay}" Style="{StaticResource MutedCaptionStyle}" />
+                                </StackPanel>
                             </StackPanel>
                         </DataTemplate>
                     </ListView.ItemTemplate>

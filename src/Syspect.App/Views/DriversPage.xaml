@@ -3,6 +3,7 @@
     x:Class="Syspect.App.Views.DriversPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:Syspect.Core.Models"
     NavigationCacheMode="Enabled">
 
     <Grid RowSpacing="12">
@@ -74,7 +75,7 @@
         <Border Grid.Row="4" Style="{StaticResource FluentCardStyle}" Padding="8">
             <ListView ItemsSource="{x:Bind ViewModel.FilteredDrivers}" SelectionMode="None">
                 <ListView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:DriverEntry">
                         <Border Margin="0,2" Padding="12,10" CornerRadius="6"
                                 Background="{ThemeResource LayerFillColorDefaultBrush}"
                                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
@@ -87,29 +88,29 @@
                                     <ColumnDefinition Width="125" />
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0" Text="{Binding DeviceClass}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="0" Text="{x:Bind DeviceClass}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
 
                                 <StackPanel Grid.Column="1" Spacing="2">
-                                    <TextBlock Text="{Binding DeviceName}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                    <TextBlock Style="{StaticResource MutedCaptionStyle}">
-                                        <Run Text="{Binding ProviderName}" />
-                                        <Run Text=" · " />
-                                        <Run Text="{Binding InfName}" />
-                                    </TextBlock>
-                                    <TextBlock Text="{Binding HintMessage}"
-                                               Visibility="{Binding HintMessage, Converter={StaticResource NotEmptyToVis}}"
+                                    <TextBlock Text="{x:Bind DeviceName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                        <TextBlock Text="{x:Bind ProviderName}" Style="{StaticResource MutedCaptionStyle}" />
+                                        <TextBlock Text="·" Style="{StaticResource MutedCaptionStyle}" />
+                                        <TextBlock Text="{x:Bind InfName}" Style="{StaticResource MutedCaptionStyle}" />
+                                    </StackPanel>
+                                    <TextBlock Text="{x:Bind HintMessage}"
+                                               Visibility="{x:Bind HintMessage, Converter={StaticResource NotEmptyToVis}}"
                                                Foreground="{ThemeResource SystemFillColorCautionBrush}"
                                                FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                                    <TextBlock Text="{Binding DriverVersion}" FontFamily="Consolas" FontSize="12" />
-                                    <TextBlock Text="{Binding DriverDate}" Style="{StaticResource MutedCaptionStyle}" />
+                                    <TextBlock Text="{x:Bind DriverVersion}" FontFamily="Consolas" FontSize="12" />
+                                    <TextBlock Text="{x:Bind DriverDate}" Style="{StaticResource MutedCaptionStyle}" />
                                 </StackPanel>
 
                                 <Border Grid.Column="3" Style="{StaticResource StatusPillStyle}" HorizontalAlignment="Right"
-                                        Background="{Binding HasAnyIssue, Converter={StaticResource BoolStatusBrush}, ConverterParameter=Invert}">
-                                    <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="SemiBold" />
+                                        Background="{x:Bind HasAnyIssue, Converter={StaticResource BoolStatusBrush}, ConverterParameter=Invert}">
+                                    <TextBlock Text="{x:Bind StatusLabel}" FontSize="11" FontWeight="SemiBold" />
                                 </Border>
                             </Grid>
                         </Border>

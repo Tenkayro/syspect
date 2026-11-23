@@ -33,6 +33,15 @@ public sealed class InverseBoolConverter : IValueConverter
         value is bool b && !b;
 }
 
+public sealed class BoolToNullableBoolConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language) =>
+        value is bool b ? (bool?)b : false;
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        value is true;
+}
+
 public sealed class NullOrEmptyToVisibilityConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, string language) =>

@@ -16,6 +16,8 @@ public sealed partial class MainWindow : Window
     private UpdateCheckResult? _pendingUpdate;
     private bool _isUpdateDialogOpen;
 
+    internal XamlRoot? DialogXamlRoot => NavView?.XamlRoot;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -23,6 +25,12 @@ public sealed partial class MainWindow : Window
 
         ConfigureWindow();
         UpdateAdminHeader();
+
+        ContentFrame.NavigationFailed += (_, args) =>
+        {
+            args.Handled = true;
+            CrashHandlerService.ReportException($"Frame.NavigationFailed ({args.SourcePageType?.Name})", args.Exception);
+        };
 
         AppServices.Current.NavigateRequested = NavigateToPage;
         NavView.SelectedItem = NavView.MenuItems[0];
@@ -92,7 +100,14 @@ public sealed partial class MainWindow : Window
 
             if (ContentFrame.CurrentSourcePageType != pageType)
             {
-                ContentFrame.Navigate(pageType);
+                try
+                {
+                    ContentFrame.Navigate(pageType);
+                }
+                catch (Exception ex)
+                {
+                    CrashHandlerService.ReportException($"Navigate ({pageType.Name})", ex);
+                }
             }
         }
     }
@@ -121,7 +136,14 @@ public sealed partial class MainWindow : Window
 
         if (ContentFrame.CurrentSourcePageType != pageType)
         {
-            ContentFrame.Navigate(pageType, parameter);
+            try
+            {
+                ContentFrame.Navigate(pageType, parameter);
+            }
+            catch (Exception ex)
+            {
+                CrashHandlerService.ReportException($"Navigate ({pageType.Name})", ex);
+            }
         }
     }
 

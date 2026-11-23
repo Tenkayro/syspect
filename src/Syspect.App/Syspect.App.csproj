@@ -46,8 +46,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <TrimmerRootAssembly Include="syspect" />
     <TrimmerRootAssembly Include="Syspect.Core" />
     <TrimmerRootAssembly Include="System.Management" />
+    <TrimmerRootAssembly Include="Microsoft.WinUI" />
+    <TrimmerRootAssembly Include="WinRT.Runtime" />
   </ItemGroup>
 
   <ItemGroup>
