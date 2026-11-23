@@ -41,18 +41,19 @@ public partial class DashboardPage : UserControl
 
     private async void OneClickCleanupButton_Click(object sender, RoutedEventArgs e)
     {
-        var ok = DialogHelper.ShowConfirmDialog(
+        var result = MessageBox.Show(
             Window.GetWindow(this),
-            "Run Safe One-Click Cleanup?",
             "The following safe maintenance steps will be executed:\n" +
             "• Disable DiagTrack (telemetry)\n" +
             "• Remove orphaned Downloads/legacy firewall rules\n" +
             "• Delete dead scheduled tasks (missing executables)\n" +
             "• Clean stale user temporary files\n\n" +
             "Protected services (SharedAccess, WSL, Audio/iLok, VMware) remain untouched.",
-            "Clean Up");
+            "Run Safe One-Click Cleanup?",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
 
-        if (ok)
+        if (result == MessageBoxResult.Yes)
         {
             await ViewModel.RunOneClickCleanupAsync();
         }

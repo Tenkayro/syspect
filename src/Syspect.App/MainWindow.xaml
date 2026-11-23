@@ -2,175 +2,84 @@
     x:Class="Syspect.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="clr-namespace:Syspect.App.Views"
     Title="syspect"
     Icon="pack://application:,,,/Assets/syspect.ico"
     Width="1280"
     Height="840"
     MinWidth="980"
     MinHeight="660"
-    WindowStartupLocation="CenterScreen"
-    Background="{StaticResource AppBackgroundBrush}"
-    Foreground="{StaticResource TextPrimaryBrush}">
+    WindowStartupLocation="CenterScreen">
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header Bar -->
-        <Border Grid.Row="0"
-                Background="{StaticResource SidebarBackgroundBrush}"
-                BorderBrush="{StaticResource CardBorderBrush}"
-                BorderThickness="0,0,0,1"
-                Padding="16,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Image Source="pack://application:,,,/Assets/syspect.png"
-                           Width="20" Height="20"
-                           Stretch="Uniform"
+        <Grid Grid.Row="0" Margin="10,8,10,4">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Image Source="pack://application:,,,/Assets/syspect.png"
+                       Width="18" Height="18"
+                       Stretch="Uniform"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,0" />
+                <TextBlock Text="syspect"
+                           FontWeight="SemiBold"
+                           FontSize="14"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="Windows 11 Diagnostics"
+                           Opacity="0.65"
+                           FontSize="12"
                            VerticalAlignment="Center"
-                           Margin="0,0,10,0" />
-                    <TextBlock Text="syspect"
-                               FontWeight="SemiBold"
-                               FontSize="14"
-                               Foreground="{StaticResource TextPrimaryBrush}"
-                               VerticalAlignment="Center" />
-                    <TextBlock Text="Windows 11 Diagnostics · tenkayro.de"
-                               Style="{StaticResource MutedCaptionStyle}"
-                               VerticalAlignment="Center"
-                               Margin="10,0,0,0" />
-                </StackPanel>
+                           Margin="10,0,0,0" />
+            </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="UpdateAvailableButton"
-                            Click="UpdateAvailableButton_Click"
-                            Visibility="Collapsed"
-                            Padding="10,4"
-                            FontSize="12"
-                            Margin="0,0,8,0"
-                            Style="{StaticResource AccentButtonStyle}">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE895;"
-                                       FontFamily="Segoe Fluent Icons"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,6,0" />
-                            <TextBlock x:Name="UpdateAvailableText"
-                                       Text="Update available"
-                                       VerticalAlignment="Center" />
-                        </StackPanel>
-                    </Button>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:Name="UpdateAvailableButton"
+                        Content="Update available"
+                        Click="UpdateAvailableButton_Click"
+                        Visibility="Collapsed"
+                        Padding="10,4"
+                        FontSize="12"
+                        Margin="0,0,8,0" />
 
-                    <Border x:Name="AdminBadge"
-                            CornerRadius="10"
-                            Padding="10,3"
-                            VerticalAlignment="Center">
-                        <TextBlock x:Name="AdminBadgeText"
-                                   FontSize="11"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextPrimaryBrush}" />
-                    </Border>
+                <Border x:Name="AdminBadge"
+                        CornerRadius="10"
+                        Padding="10,3"
+                        VerticalAlignment="Center">
+                    <TextBlock x:Name="AdminBadgeText" FontSize="11" FontWeight="SemiBold" />
+                </Border>
 
-                    <Button x:Name="ElevateButton"
-                            Content="Restart as Admin"
-                            Click="ElevateButton_Click"
-                            Visibility="Collapsed"
-                            Padding="10,4"
-                            FontSize="12"
-                            Margin="8,0,0,0" />
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- Sidebar + Page Content -->
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="224" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <Border Grid.Column="0"
-                    Background="{StaticResource SidebarBackgroundBrush}"
-                    BorderBrush="{StaticResource CardBorderBrush}"
-                    BorderThickness="0,0,1,0"
-                    Padding="10,12">
-                <StackPanel>
-                    <RadioButton x:Name="NavDashboard"
-                                 Style="{StaticResource NavItemRadioStyle}"
-                                 GroupName="MainNav"
-                                 Tag="Dashboard"
-                                 Checked="NavItem_Checked">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE80F;" FontFamily="Segoe Fluent Icons" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="Overview" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </RadioButton>
-
-                    <RadioButton x:Name="NavRepair"
-                                 Style="{StaticResource NavItemRadioStyle}"
-                                 GroupName="MainNav"
-                                 Tag="Repair"
-                                 Checked="NavItem_Checked">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE90F;" FontFamily="Segoe Fluent Icons" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="Repair" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </RadioButton>
-
-                    <RadioButton x:Name="NavDrivers"
-                                 Style="{StaticResource NavItemRadioStyle}"
-                                 GroupName="MainNav"
-                                 Tag="Drivers"
-                                 Checked="NavItem_Checked">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="Drivers" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </RadioButton>
-
-                    <RadioButton x:Name="NavStartupServices"
-                                 Style="{StaticResource NavItemRadioStyle}"
-                                 GroupName="MainNav"
-                                 Tag="StartupServices"
-                                 Checked="NavItem_Checked">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE71D;" FontFamily="Segoe Fluent Icons" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="Startup &amp; Services" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </RadioButton>
-
-                    <RadioButton x:Name="NavFirewall"
-                                 Style="{StaticResource NavItemRadioStyle}"
-                                 GroupName="MainNav"
-                                 Tag="Firewall"
-                                 Checked="NavItem_Checked">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="Firewall" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </RadioButton>
-
-                    <RadioButton x:Name="NavLogs"
-                                 Style="{StaticResource NavItemRadioStyle}"
-                                 GroupName="MainNav"
-                                 Tag="Logs"
-                                 Checked="NavItem_Checked">
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="&#xE8A5;" FontFamily="Segoe Fluent Icons" FontSize="15" VerticalAlignment="Center" Margin="0,0,12,0" />
-                            <TextBlock Text="Logs &amp; CBS" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </RadioButton>
-                </StackPanel>
-            </Border>
-
-            <ContentControl x:Name="PageHost" Grid.Column="1" Margin="24,18,24,20" />
+                <Button x:Name="ElevateButton"
+                        Content="Restart as Admin"
+                        Click="ElevateButton_Click"
+                        Visibility="Collapsed"
+                        Padding="10,4"
+                        FontSize="12"
+                        Margin="8,0,0,0" />
+            </StackPanel>
         </Grid>
+
+        <TabControl x:Name="MainTabs" Grid.Row="1" Margin="8,4,8,8">
+            <TabItem Header="Overview">
+                <views:DashboardPage />
+            </TabItem>
+            <TabItem Header="Repair">
+                <views:RepairPage />
+            </TabItem>
+            <TabItem Header="Drivers">
+                <views:DriversPage />
+            </TabItem>
+            <TabItem Header="Startup &amp; Services">
+                <views:StartupServicesPage />
+            </TabItem>
+            <TabItem Header="Firewall">
+                <views:FirewallPage />
+            </TabItem>
+            <TabItem Header="Logs &amp; CBS">
+                <views:LogsPage />
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>

@@ -35,13 +35,14 @@ public partial class RepairPage : UserControl
 
     private async void ScheduleChkdskButton_Click(object sender, RoutedEventArgs e)
     {
-        var ok = DialogHelper.ShowConfirmDialog(
+        var result = MessageBox.Show(
             Window.GetWindow(this),
-            "Schedule chkdsk C: /f on Next Reboot?",
             "Windows will verify and repair the NTFS filesystem of drive C: before booting on the next restart.",
-            "Schedule");
+            "Schedule chkdsk C: /f on Next Reboot?",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
 
-        if (ok)
+        if (result == MessageBoxResult.Yes)
         {
             await ViewModel.ScheduleChkdskRebootAsync();
         }

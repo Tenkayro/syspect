@@ -134,12 +134,8 @@ public static class CrashHandlerService
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,
             WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            Owner = owner,
-            Background = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1C)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3))
+            Owner = owner
         };
-
-        WindowThemeHelper.ApplyDarkTitleBar(dialog);
 
         var headerText = new TextBlock
         {
@@ -158,7 +154,7 @@ public static class CrashHandlerService
             IsReadOnly = true,
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
-            Foreground = new SolidColorBrush(Color.FromRgb(0xA6, 0xA6, 0xA6)),
+            Opacity = 0.75,
             FontSize = 12,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 10)
@@ -173,11 +169,6 @@ public static class CrashHandlerService
             Height = 300,
             FontFamily = new FontFamily("Consolas"),
             FontSize = 11,
-            Background = new SolidColorBrush(Color.FromRgb(0x15, 0x15, 0x15)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x35, 0x35, 0x35)),
-            BorderThickness = new Thickness(1),
-            Padding = new Thickness(10),
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Margin = new Thickness(0, 0, 0, 14)
@@ -186,12 +177,9 @@ public static class CrashHandlerService
         var copyBtn = new Button
         {
             Content = "Copy Crash Log",
+            Padding = new Thickness(12, 5, 12, 5),
             Margin = new Thickness(0, 0, 8, 0)
         };
-        if (Application.Current?.TryFindResource("AccentButtonStyle") is Style accentStyle)
-        {
-            copyBtn.Style = accentStyle;
-        }
         copyBtn.Click += (_, _) =>
         {
             if (TryCopyToClipboardWin32(reportText))
@@ -203,6 +191,7 @@ public static class CrashHandlerService
         var openFolderBtn = new Button
         {
             Content = "Open Logs Folder",
+            Padding = new Thickness(12, 5, 12, 5),
             IsEnabled = !string.IsNullOrWhiteSpace(logPath),
             Margin = new Thickness(0, 0, 8, 0)
         };
@@ -217,6 +206,7 @@ public static class CrashHandlerService
         var closeBtn = new Button
         {
             Content = "Close",
+            Padding = new Thickness(12, 5, 12, 5),
             IsCancel = true
         };
         closeBtn.Click += (_, _) => dialog.Close();
@@ -230,7 +220,7 @@ public static class CrashHandlerService
 
         dialog.Content = new StackPanel
         {
-            Margin = new Thickness(20),
+            Margin = new Thickness(16),
             Children = { headerText, logLocationBox, stackBox, buttonRow }
         };
 
@@ -316,7 +306,6 @@ public static class CrashHandlerService
                 return false;
             }
 
-            // Clipboard owns hGlobal once SetClipboardData succeeds.
             hGlobal = 0;
             return true;
         }

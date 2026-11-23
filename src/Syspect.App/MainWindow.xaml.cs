@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using Syspect.App.Services;
 using Syspect.App.Views;
@@ -10,19 +9,15 @@ namespace Syspect.App;
 
 public partial class MainWindow : Window
 {
-    private readonly Dictionary<Type, UserControl> _pageCache = [];
-    private Type? _currentPageType;
     private UpdateCheckResult? _pendingUpdate;
     private bool _isUpdateDialogOpen;
 
     public MainWindow()
     {
         InitializeComponent();
-        WindowThemeHelper.ApplyDarkTitleBar(this);
         UpdateAdminHeader();
 
         AppServices.Current.NavigateRequested = NavigateToPage;
-        NavDashboard.IsChecked = true;
         Loaded += MainWindow_Loaded;
     }
 
@@ -46,82 +41,19 @@ public partial class MainWindow : Window
         }
     }
 
-    private void NavItem_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioButton { Tag: string tag })
-        {
-            var pageType = tag switch
-            {
-                "Dashboard" => typeof(DashboardPage),
-                "Repair" => typeof(RepairPage),
-                "Drivers" => typeof(DriversPage),
-                "StartupServices" => typeof(StartupServicesPage),
-                "Firewall" => typeof(FirewallPage),
-                "Logs" => typeof(LogsPage),
-                _ => typeof(DashboardPage)
-            };
-
-            ShowPage(pageType);
-        }
-    }
-
     private void NavigateToPage(Type pageType, object? parameter)
     {
-        var navBtn = pageType.Name switch
+        MainTabs.SelectedIndex = pageType.Name switch
         {
-            nameof(DashboardPage) => NavDashboard,
-            nameof(RepairPage) => NavRepair,
-            nameof(DriversPage) => NavDrivers,
-            nameof(StartupServicesPage) => NavStartupServices,
-            nameof(FirewallPage) => NavFirewall,
-            nameof(LogsPage) => NavLogs,
-            _ => NavDashboard
+            nameof(DashboardPage) => 0,
+            nameof(RepairPage) => 1,
+            nameof(DriversPage) => 2,
+            nameof(StartupServicesPage) => 3,
+            nameof(FirewallPage) => 4,
+            nameof(LogsPage) => 5,
+            _ => 0
         };
-
-        if (navBtn.IsChecked != true)
-        {
-            navBtn.IsChecked = true;
-        }
-        else
-        {
-            ShowPage(pageType);
-        }
     }
-
-    private void ShowPage(Type pageType)
-    {
-        if (_currentPageType == pageType)
-        {
-            return;
-        }
-
-        try
-        {
-            if (!_pageCache.TryGetValue(pageType, out var view))
-            {
-                view = CreateViewForType(pageType);
-                _pageCache[pageType] = view;
-            }
-
-            _currentPageType = pageType;
-            PageHost.Content = view;
-        }
-        catch (Exception ex)
-        {
-            CrashHandlerService.ReportException($"Navigate ({pageType.Name})", ex);
-        }
-    }
-
-    private static UserControl CreateViewForType(Type pageType) => pageType.Name switch
-    {
-        nameof(DashboardPage) => new DashboardPage(),
-        nameof(RepairPage) => new RepairPage(),
-        nameof(DriversPage) => new DriversPage(),
-        nameof(StartupServicesPage) => new StartupServicesPage(),
-        nameof(FirewallPage) => new FirewallPage(),
-        nameof(LogsPage) => new LogsPage(),
-        _ => new DashboardPage()
-    };
 
     private void ElevateButton_Click(object sender, RoutedEventArgs e)
     {
@@ -146,7 +78,7 @@ public partial class MainWindow : Window
             _ = Dispatcher.BeginInvoke(() =>
             {
                 _pendingUpdate = result;
-                UpdateAvailableText.Text = $"Update v{release.Version}";
+                UpdateAvailableButton.Content = $"Update v{release.Version}";
                 UpdateAvailableButton.Visibility = Visibility.Visible;
             });
         }

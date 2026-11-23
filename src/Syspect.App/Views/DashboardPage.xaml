@@ -2,195 +2,150 @@
     x:Class="Syspect.App.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:views="clr-namespace:Syspect.App.Views"
-    Foreground="{StaticResource TextPrimaryBrush}">
+    xmlns:views="clr-namespace:Syspect.App.Views">
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="0,0,8,16">
+        <StackPanel Margin="6">
 
-            <!-- Header -->
-            <Grid Margin="0,0,0,14">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0">
-                    <TextBlock Text="System Overview" Style="{StaticResource PageHeaderStyle}" />
-                    <TextBlock Text="Live health summary for storage, Windows integrity, drivers, and firewall" Style="{StaticResource MutedCaptionStyle}" />
+            <Grid Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="System Overview" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock Text="Live health summary for storage, Windows integrity, drivers, and firewall" Opacity="0.7" FontSize="12" />
                 </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <ProgressBar IsIndeterminate="True"
-                                 Width="72"
+                                 Width="80"
                                  Height="4"
                                  Margin="0,0,10,0"
                                  VerticalAlignment="Center"
-                                 Foreground="{StaticResource AccentBrush}"
-                                 Background="{StaticResource SubtleSurfaceBrush}"
                                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}" />
                     <Button Content="Refresh"
+                            Padding="10,4"
                             Margin="0,0,8,0"
                             Click="RefreshButton_Click"
                             IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
                     <Button Content="Run Smart Pipeline"
-                            Style="{StaticResource AccentButtonStyle}"
+                            Padding="10,4"
                             Click="GoToRepairButton_Click" />
                 </StackPanel>
             </Grid>
 
-            <views:BannerControl Margin="0,0,0,12"
+            <views:BannerControl Margin="0,0,0,10"
                                  IsOpen="{Binding IsBannerOpen, Mode=TwoWay}"
                                  Severity="{Binding BannerSeverity}"
                                  Message="{Binding BannerMessage}" />
 
-            <!-- 4 KPI Hero Cards -->
-            <Grid Margin="0,0,0,14">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="12" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <GroupBox Header="System Health" Padding="10" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="16" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="12" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource FluentCardStyle}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="&#xEDA2;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Text="SSD &amp; Storage" Style="{StaticResource CardTitleStyle}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding SsdHeadline}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
-                        <TextBlock Text="{Binding SsdSubtext}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    <StackPanel Grid.Row="0" Grid.Column="0">
+                        <TextBlock Text="SSD &amp; Storage" FontWeight="SemiBold" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="{Binding SsdHeadline}" FontSize="16" FontWeight="SemiBold" Margin="0,2" />
+                        <TextBlock Text="{Binding SsdSubtext}" FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
                     </StackPanel>
-                </Border>
 
-                <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource FluentCardStyle}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="&#xE770;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Text="Windows Integrity (CBS.log)" Style="{StaticResource CardTitleStyle}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding WindowsHeadline}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
-                        <TextBlock Text="{Binding WindowsSubtext}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    <StackPanel Grid.Row="0" Grid.Column="2">
+                        <TextBlock Text="Windows Integrity (CBS.log)" FontWeight="SemiBold" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="{Binding WindowsHeadline}" FontSize="16" FontWeight="SemiBold" Margin="0,2" />
+                        <TextBlock Text="{Binding WindowsSubtext}" FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
                     </StackPanel>
-                </Border>
 
-                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource FluentCardStyle}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="&#xE7F4;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Text="Drivers &amp; Devices" Style="{StaticResource CardTitleStyle}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding DriverHeadline}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
-                        <TextBlock Text="{Binding DriverSubtext}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    <StackPanel Grid.Row="2" Grid.Column="0">
+                        <TextBlock Text="Drivers &amp; Devices" FontWeight="SemiBold" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="{Binding DriverHeadline}" FontSize="16" FontWeight="SemiBold" Margin="0,2" />
+                        <TextBlock Text="{Binding DriverSubtext}" FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
                     </StackPanel>
-                </Border>
 
-                <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource FluentCardStyle}">
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="&#xEA18;" FontFamily="Segoe Fluent Icons" FontSize="15" Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,8,0" />
-                            <TextBlock Text="Firewall &amp; Network" Style="{StaticResource CardTitleStyle}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="{Binding FirewallHeadline}" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
-                        <TextBlock Text="{Binding FirewallSubtext}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    <StackPanel Grid.Row="2" Grid.Column="2">
+                        <TextBlock Text="Firewall &amp; Network" FontWeight="SemiBold" FontSize="12" Opacity="0.75" />
+                        <TextBlock Text="{Binding FirewallHeadline}" FontSize="16" FontWeight="SemiBold" Margin="0,2" />
+                        <TextBlock Text="{Binding FirewallSubtext}" FontSize="12" Opacity="0.75" TextWrapping="Wrap" />
                     </StackPanel>
-                </Border>
-            </Grid>
+                </Grid>
+            </GroupBox>
 
-            <!-- System Details & Quick Actions -->
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1.2*" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+            <GroupBox Header="Hardware &amp; OS" Padding="10" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
-                <Border Grid.Column="0" Style="{StaticResource FluentCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Hardware &amp; OS" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,10" />
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="135" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System" Opacity="0.7" Margin="0,0,0,5" />
+                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Overview.OsCaption, FallbackValue='-'}" TextWrapping="Wrap" Margin="0,0,0,5" />
 
-                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System" Style="{StaticResource MutedCaptionStyle}" Margin="0,0,0,6" />
-                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Overview.OsCaption, FallbackValue='-'}" TextWrapping="Wrap" Margin="0,0,0,6" />
-
-                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Build / Uptime" Style="{StaticResource MutedCaptionStyle}" Margin="0,0,0,6" />
-                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="{Binding Overview.OsBuild, FallbackValue='-'}" />
-                                <TextBlock Text=" · " />
-                                <TextBlock Text="{Binding Overview.UptimeText, FallbackValue='-'}" />
-                            </StackPanel>
-
-                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Motherboard / BIOS" Style="{StaticResource MutedCaptionStyle}" Margin="0,0,0,6" />
-                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,6">
-                                <TextBlock Text="{Binding Overview.Motherboard, FallbackValue='-'}" Margin="0,0,6,0" />
-                                <TextBlock Text="{Binding Overview.BiosVersion, FallbackValue=''}" />
-                            </StackPanel>
-
-                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Processor" Style="{StaticResource MutedCaptionStyle}" Margin="0,0,0,6" />
-                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Overview.CpuName, FallbackValue='-'}" TextWrapping="Wrap" Margin="0,0,0,6" />
-
-                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Graphics" Style="{StaticResource MutedCaptionStyle}" Margin="0,0,0,6" />
-                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Overview.GpuName, FallbackValue='-'}" TextWrapping="Wrap" Margin="0,0,0,6" />
-
-                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Memory" Style="{StaticResource MutedCaptionStyle}" />
-                            <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
-                                <TextBlock Text="{Binding Overview.TotalRamGb, FallbackValue=0}" Margin="0,0,4,0" />
-                                <TextBlock Text="GB RAM" />
-                            </StackPanel>
-                        </Grid>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Build / Uptime" Opacity="0.7" Margin="0,0,0,5" />
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="{Binding Overview.OsBuild, FallbackValue='-'}" />
+                        <TextBlock Text=" · " />
+                        <TextBlock Text="{Binding Overview.UptimeText, FallbackValue='-'}" />
                     </StackPanel>
-                </Border>
 
-                <Border Grid.Column="2" Style="{StaticResource FluentCardStyle}">
-                    <StackPanel>
-                        <TextBlock Text="Quick Actions" Style="{StaticResource CardTitleStyle}" Margin="0,0,0,4" />
-                        <TextBlock Text="Safe one-click maintenance for Windows 11." Style="{StaticResource MutedCaptionStyle}" Margin="0,0,0,12" />
-
-                        <Button Content="Open Repair Pipeline"
-                                HorizontalAlignment="Stretch"
-                                Margin="0,0,0,8"
-                                Style="{StaticResource AccentButtonStyle}"
-                                Click="GoToRepairButton_Click" />
-
-                        <Button Content="One-Click Safe Cleanup (DiagTrack, Orphans, Temp)"
-                                HorizontalAlignment="Stretch"
-                                Margin="0,0,0,8"
-                                Click="OneClickCleanupButton_Click"
-                                IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
-
-                        <Button Content="Restart NVIDIA Tray Services"
-                                HorizontalAlignment="Stretch"
-                                Margin="0,0,0,8"
-                                Click="RestartNvidiaButton_Click"
-                                IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
-
-                        <Button Content="Inspect Logs &amp; CBS.log"
-                                HorizontalAlignment="Stretch"
-                                Margin="0,0,0,8"
-                                Click="GoToLogsButton_Click" />
-
-                        <Button Content="{Binding CurrentVersionDisplay}"
-                                HorizontalAlignment="Stretch"
-                                Click="CheckUpdatesButton_Click"
-                                IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Motherboard / BIOS" Opacity="0.7" Margin="0,0,0,5" />
+                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="{Binding Overview.Motherboard, FallbackValue='-'}" Margin="0,0,6,0" />
+                        <TextBlock Text="{Binding Overview.BiosVersion, FallbackValue=''}" />
                     </StackPanel>
-                </Border>
-            </Grid>
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Processor" Opacity="0.7" Margin="0,0,0,5" />
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Overview.CpuName, FallbackValue='-'}" TextWrapping="Wrap" Margin="0,0,0,5" />
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Graphics" Opacity="0.7" Margin="0,0,0,5" />
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Overview.GpuName, FallbackValue='-'}" TextWrapping="Wrap" Margin="0,0,0,5" />
+
+                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Memory" Opacity="0.7" />
+                    <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal">
+                        <TextBlock Text="{Binding Overview.TotalRamGb, FallbackValue=0}" Margin="0,0,4,0" />
+                        <TextBlock Text="GB RAM" />
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
+
+            <GroupBox Header="Quick Actions" Padding="10">
+                <WrapPanel Orientation="Horizontal">
+                    <Button Content="Open Repair Pipeline"
+                            Padding="12,5"
+                            Margin="0,0,8,6"
+                            Click="GoToRepairButton_Click" />
+                    <Button Content="One-Click Safe Cleanup (DiagTrack, Orphans, Temp)"
+                            Padding="12,5"
+                            Margin="0,0,8,6"
+                            Click="OneClickCleanupButton_Click"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
+                    <Button Content="Restart NVIDIA Tray Services"
+                            Padding="12,5"
+                            Margin="0,0,8,6"
+                            Click="RestartNvidiaButton_Click"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
+                    <Button Content="Inspect Logs &amp; CBS.log"
+                            Padding="12,5"
+                            Margin="0,0,8,6"
+                            Click="GoToLogsButton_Click" />
+                    <Button Content="{Binding CurrentVersionDisplay}"
+                            Padding="12,5"
+                            Margin="0,0,0,6"
+                            Click="CheckUpdatesButton_Click"
+                            IsEnabled="{Binding IsLoading, Converter={StaticResource InvBool}}" />
+                </WrapPanel>
+            </GroupBox>
 
         </StackPanel>
     </ScrollViewer>

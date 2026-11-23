@@ -1,14 +1,12 @@
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using Syspect.App.Services;
 using Syspect.Core.Models;
 using Syspect.Core.Services;
 
 namespace Syspect.App.Views;
 
 /// <summary>
-/// Shared WPF modal dialog flow for displaying release notes, downloading, verifying SHA-256, and launching MSI updates.
+/// Shared WPF dialog flow for displaying release notes, downloading, verifying SHA-256, and launching MSI updates.
 /// </summary>
 public static class UpdateDialogHelper
 {
@@ -30,17 +28,13 @@ public static class UpdateDialogHelper
         var dialog = new Window
         {
             Title = $"Update Available — {release.ReleaseName}",
-            Width = 540,
+            Width = 520,
             SizeToContent = SizeToContent.Height,
             ResizeMode = ResizeMode.NoResize,
             ShowInTaskbar = false,
             WindowStartupLocation = owner is not null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
-            Owner = owner,
-            Background = new SolidColorBrush(Color.FromRgb(0x1C, 0x1C, 0x1C)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xF3, 0xF3, 0xF3))
+            Owner = owner
         };
-
-        WindowThemeHelper.ApplyDarkTitleBar(dialog);
 
         var summaryText = new TextBlock
         {
@@ -62,11 +56,6 @@ public static class UpdateDialogHelper
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
             Height = 180,
-            Background = new SolidColorBrush(Color.FromRgb(0x15, 0x15, 0x15)),
-            Foreground = new SolidColorBrush(Color.FromRgb(0xE4, 0xE4, 0xE4)),
-            BorderBrush = new SolidColorBrush(Color.FromRgb(0x35, 0x35, 0x35)),
-            BorderThickness = new Thickness(1),
-            Padding = new Thickness(10),
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             Margin = new Thickness(0, 0, 0, 12)
         };
@@ -74,7 +63,7 @@ public static class UpdateDialogHelper
         var statusText = new TextBlock
         {
             FontSize = 12,
-            Foreground = new SolidColorBrush(Color.FromRgb(0xA6, 0xA6, 0xA6)),
+            Opacity = 0.75,
             TextWrapping = TextWrapping.Wrap,
             Margin = new Thickness(0, 0, 0, 6)
         };
@@ -84,9 +73,7 @@ public static class UpdateDialogHelper
             Minimum = 0,
             Maximum = 100,
             Value = 0,
-            Height = 6,
-            Foreground = new SolidColorBrush(Color.FromRgb(0xE9, 0x74, 0x51)),
-            Background = new SolidColorBrush(Color.FromRgb(0x32, 0x32, 0x32))
+            Height = 8
         };
 
         var progressPanel = new StackPanel
@@ -109,23 +96,22 @@ public static class UpdateDialogHelper
         var downloadBtn = new Button
         {
             Content = "Download & Install",
+            Padding = new Thickness(12, 5, 12, 5),
             IsEnabled = hasMsi,
             Margin = new Thickness(0, 0, 8, 0)
         };
-        if (Application.Current?.TryFindResource("AccentButtonStyle") is Style accentStyle)
-        {
-            downloadBtn.Style = accentStyle;
-        }
 
         var openGithubBtn = new Button
         {
             Content = "Open GitHub",
+            Padding = new Thickness(12, 5, 12, 5),
             Margin = new Thickness(0, 0, 8, 0)
         };
 
         var closeBtn = new Button
         {
             Content = "Later",
+            Padding = new Thickness(12, 5, 12, 5),
             IsCancel = true
         };
 
@@ -133,7 +119,17 @@ public static class UpdateDialogHelper
         var shouldExitForInstaller = false;
         var isDownloading = false;
 
-        dialog.Closing += (_, _) => downloadCts.Cancel();
+        dialog.Closing += (_, _) =>
+        {
+            try
+            {
+                downloadCts.Cancel();
+            }
+            catch (ObjectDisposedException)
+            {
+                // Ignore if already disposed.
+            }
+        };
 
         closeBtn.Click += (_, _) =>
         {
@@ -226,7 +222,7 @@ public static class UpdateDialogHelper
 
         dialog.Content = new StackPanel
         {
-            Margin = new Thickness(20),
+            Margin = new Thickness(16),
             Children = { summaryText, notesBox, progressPanel, warningBanner, buttonRow }
         };
 

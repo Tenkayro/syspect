@@ -2,10 +2,9 @@
     x:Class="Syspect.App.Views.RepairPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:views="clr-namespace:Syspect.App.Views"
-    Foreground="{StaticResource TextPrimaryBrush}">
+    xmlns:views="clr-namespace:Syspect.App.Views">
 
-    <Grid>
+    <Grid Margin="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -13,204 +12,180 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <StackPanel Grid.Column="0">
-                <TextBlock Text="Repair &amp; Integrity Pipeline" Style="{StaticResource PageHeaderStyle}" />
-                <TextBlock Text="Ordered execution: SSD &amp; chkdsk /scan → DISM (Check/Scan/Restore) → SFC → ComponentCleanup" Style="{StaticResource MutedCaptionStyle}" />
+        <Grid Grid.Row="0" Margin="0,0,0,8">
+            <StackPanel>
+                <TextBlock Text="Repair &amp; Integrity Pipeline" FontSize="18" FontWeight="SemiBold" />
+                <TextBlock Text="Ordered execution: SSD &amp; chkdsk /scan → DISM (Check/Scan/Restore) → SFC → ComponentCleanup" Opacity="0.7" FontSize="12" />
             </StackPanel>
-            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button Content="Refresh CBS"
+                        Padding="10,4"
+                        Margin="0,0,8,0"
+                        Click="RefreshCbsButton_Click" />
                 <Button Content="Schedule chkdsk C: /f"
+                        Padding="10,4"
                         Margin="0,0,8,0"
                         Click="ScheduleChkdskButton_Click"
                         IsEnabled="{Binding IsRunning, Converter={StaticResource InvBool}}" />
                 <Button Content="Cancel"
+                        Padding="10,4"
                         Margin="0,0,8,0"
                         Click="CancelButton_Click"
                         Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}" />
                 <Button Content="Run Smart Pipeline"
-                        Style="{StaticResource AccentButtonStyle}"
+                        Padding="10,4"
                         Click="StartButton_Click"
                         IsEnabled="{Binding IsRunning, Converter={StaticResource InvBool}}" />
             </StackPanel>
         </Grid>
 
         <views:BannerControl Grid.Row="1"
-                             Margin="0,0,0,10"
+                             Margin="0,0,0,8"
                              IsOpen="{Binding IsBannerOpen, Mode=TwoWay}"
                              Severity="{Binding BannerSeverity}"
                              Message="{Binding BannerMessage}" />
 
-        <!-- Top Telemetry & Progress Card -->
-        <Border Grid.Row="2" Style="{StaticResource FluentCardStyle}" Padding="14,10" Margin="0,0,0,12">
-            <StackPanel>
-                <Grid Margin="0,0,0,6">
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Text="{Binding CurrentStepText}"
+                           FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"
+                           Margin="0,0,12,0" />
+                <TextBlock Grid.Column="1"
+                           Text="{Binding ElapsedStatusText}"
+                           Opacity="0.75"
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis" />
+            </Grid>
+
+            <ProgressBar Minimum="0" Maximum="100" Height="8" Value="{Binding ProgressPercent}" />
+
+            <StackPanel Margin="0,6,0,0" Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0"
-                               Text="{Binding CurrentStepText}"
-                               FontWeight="SemiBold"
+                               Text="{Binding LiveActivityText}"
+                               FontSize="12"
+                               Opacity="0.8"
                                TextTrimming="CharacterEllipsis"
                                Margin="0,0,12,0" />
                     <TextBlock Grid.Column="1"
-                               Style="{StaticResource MutedCaptionStyle}"
-                               Text="{Binding ElapsedStatusText}"
-                               TextTrimming="CharacterEllipsis" />
+                               Text="{Binding LiveMetricsText}"
+                               FontFamily="Consolas"
+                               FontSize="12"
+                               Opacity="0.8" />
                 </Grid>
-
                 <ProgressBar Minimum="0"
                              Maximum="100"
                              Height="5"
-                             Foreground="{StaticResource AccentBrush}"
-                             Background="{StaticResource SubtleSurfaceBrush}"
-                             Value="{Binding ProgressPercent}" />
-
-                <StackPanel Margin="0,8,0,0"
-                            Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ProgressBar Grid.Column="0"
-                                     IsIndeterminate="True"
-                                     Width="34"
-                                     Height="3"
-                                     Foreground="{StaticResource AccentBrush}"
-                                     Background="{StaticResource SubtleSurfaceBrush}"
-                                     VerticalAlignment="Center"
-                                     Margin="0,0,10,0" />
-                        <TextBlock Grid.Column="1"
-                                   Text="{Binding LiveActivityText}"
-                                   FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   TextTrimming="CharacterEllipsis"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,12,0" />
-                        <TextBlock Grid.Column="2"
-                                   Text="{Binding LiveMetricsText}"
-                                   FontFamily="Consolas"
-                                   FontSize="12"
-                                   Foreground="{StaticResource TextSecondaryBrush}"
-                                   VerticalAlignment="Center" />
-                    </Grid>
-                    <ProgressBar Minimum="0"
-                                 Maximum="100"
-                                 Height="3"
-                                 Margin="0,5,0,0"
-                                 Foreground="{StaticResource AccentBrush}"
-                                 Background="{StaticResource SubtleSurfaceBrush}"
-                                 Value="{Binding DownloadProgressPercent}"
-                                 Visibility="{Binding HasDownloadProgress, Converter={StaticResource BoolToVis}}" />
-                </StackPanel>
+                             Margin="0,4,0,0"
+                             Value="{Binding DownloadProgressPercent}"
+                             Visibility="{Binding HasDownloadProgress, Converter={StaticResource BoolToVis}}" />
             </StackPanel>
-        </Border>
+        </StackPanel>
 
-        <!-- Main Split: Step Checklist + Console/CBS -->
         <Grid Grid.Row="3">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="410" />
-                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="385" />
+                <ColumnDefinition Width="6" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource FluentCardStyle}" Padding="10">
-                <ListBox Style="{StaticResource CardListBoxStyle}" ItemsSource="{Binding Steps}">
+            <GroupBox Grid.Column="0" Header="Pipeline Steps" Padding="6">
+                <ListBox ItemsSource="{Binding Steps}"
+                         HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         BorderThickness="0"
+                         Background="Transparent">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource ItemCardStyle}" Margin="0,0,0,8" Padding="10,8">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                            <Grid Margin="2,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                                    <CheckBox Grid.Column="0"
-                                              IsChecked="{Binding IsSelected, Mode=TwoWay}"
-                                              VerticalAlignment="Top"
-                                              Margin="0,2,8,0" />
+                                <CheckBox Grid.Column="0"
+                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          VerticalAlignment="Top"
+                                          Margin="0,2,8,0" />
 
-                                    <StackPanel Grid.Column="1" Margin="0,0,8,0">
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,2" />
-                                        <TextBlock Text="{Binding SummaryText}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" Margin="0,0,0,3" />
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="Code: " FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
-                                            <TextBlock Text="{Binding ExitCodeText}" FontSize="11" Style="{StaticResource MutedCaptionStyle}" Margin="0,0,12,0" />
-                                            <TextBlock Text="Duration: " FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
-                                            <TextBlock Text="{Binding DurationText}" FontSize="11" Style="{StaticResource MutedCaptionStyle}" />
-                                        </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13" />
+                                    <TextBlock Text="{Binding SummaryText}" FontSize="11.5" Opacity="0.75" TextWrapping="Wrap" Margin="0,1,0,2" />
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Code: " FontSize="11" Opacity="0.65" />
+                                        <TextBlock Text="{Binding ExitCodeText}" FontSize="11" Opacity="0.65" Margin="0,0,10,0" />
+                                        <TextBlock Text="Duration: " FontSize="11" Opacity="0.65" />
+                                        <TextBlock Text="{Binding DurationText}" FontSize="11" Opacity="0.65" />
                                     </StackPanel>
+                                </StackPanel>
 
-                                    <Border Grid.Column="2"
-                                            Style="{StaticResource StatusPillStyle}"
-                                            Background="{Binding State, Converter={StaticResource RepairStateBrush}}">
-                                        <TextBlock Text="{Binding StateLabel}" FontSize="11" FontWeight="SemiBold" />
-                                    </Border>
-                                </Grid>
-                            </Border>
+                                <Border Grid.Column="2"
+                                        CornerRadius="8"
+                                        Padding="8,2"
+                                        VerticalAlignment="Top"
+                                        Background="{Binding State, Converter={StaticResource RepairStateBrush}}">
+                                    <TextBlock Text="{Binding StateLabel}" FontSize="11" FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
                         </DataTemplate>
                     </ListBox.ItemTemplate>
                 </ListBox>
-            </Border>
+            </GroupBox>
+
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch"
+                          Background="Transparent" />
 
             <Grid Grid.Column="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*" />
-                    <RowDefinition Height="12" />
-                    <RowDefinition Height="195" />
+                    <RowDefinition Height="6" />
+                    <RowDefinition Height="185" />
                 </Grid.RowDefinitions>
 
-                <Border Grid.Row="0" Style="{StaticResource FluentCardStyle}" Padding="12">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0"
-                                   Text="Live Console &amp; Background Activity (DISM / CBS / SFC / chkdsk)"
-                                   Style="{StaticResource CardTitleStyle}"
-                                   Margin="0,0,0,8" />
-                        <Border Grid.Row="1"
-                                Background="{StaticResource ConsoleBackgroundBrush}"
-                                BorderBrush="{StaticResource CardBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6">
-                            <TextBox x:Name="ConsoleTextBox"
-                                     Style="{StaticResource SelectableConsoleTextBoxStyle}"
-                                     Text="{Binding ConsoleText, Mode=OneWay}" />
-                        </Border>
-                    </Grid>
-                </Border>
+                <GroupBox Grid.Row="0" Header="Live Console &amp; Background Activity (DISM / CBS / SFC / chkdsk)" Padding="6">
+                    <TextBox x:Name="ConsoleTextBox"
+                             IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             BorderThickness="0"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled"
+                             Text="{Binding ConsoleText, Mode=OneWay}" />
+                </GroupBox>
 
-                <Border Grid.Row="2" Style="{StaticResource FluentCardStyle}" Padding="12">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
-                        </Grid.RowDefinitions>
-                        <Grid Grid.Row="0" Margin="0,0,0,6">
-                            <TextBlock Text="Windows CBS.log Summary" Style="{StaticResource CardTitleStyle}" VerticalAlignment="Center" />
-                            <Button Content="Refresh CBS" HorizontalAlignment="Right" Padding="10,4" FontSize="12" Click="RefreshCbsButton_Click" />
-                        </Grid>
-                        <Border Grid.Row="1"
-                                Background="{StaticResource ConsoleBackgroundBrush}"
-                                BorderBrush="{StaticResource CardBorderBrush}"
-                                BorderThickness="1"
-                                CornerRadius="6">
-                            <TextBox Style="{StaticResource SelectableConsoleTextBoxStyle}"
-                                     Padding="10"
-                                     Text="{Binding CbsReport.RawSummaryText, Mode=OneWay, FallbackValue='Loading CBS.log...'}" />
-                        </Border>
-                    </Grid>
-                </Border>
+                <GridSplitter Grid.Row="1"
+                              Height="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              Background="Transparent" />
+
+                <GroupBox Grid.Row="2" Header="Windows CBS.log Summary" Padding="6">
+                    <TextBox IsReadOnly="True"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             BorderThickness="0"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Disabled"
+                             Text="{Binding CbsReport.RawSummaryText, Mode=OneWay, FallbackValue='Loading CBS.log...'}" />
+                </GroupBox>
             </Grid>
         </Grid>
     </Grid>

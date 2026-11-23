@@ -26,14 +26,6 @@ public partial class FirewallPage : UserControl
         await ViewModel.LoadAsync();
     }
 
-    private void FwTabRadio_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioButton { Tag: string tag } && int.TryParse(tag, out int index))
-        {
-            ViewModel.SelectedTabIndex = index;
-        }
-    }
-
     private async void DeleteSelectedButton_Click(object sender, RoutedEventArgs e)
     {
         var count = ViewModel.OrphanedRules.Count(r => r.IsChecked);
@@ -43,13 +35,14 @@ public partial class FirewallPage : UserControl
             return;
         }
 
-        var ok = DialogHelper.ShowConfirmDialog(
+        var result = MessageBox.Show(
             Window.GetWindow(this),
-            "Delete Selected Firewall Rules?",
             $"Permanently delete {count} selected orphaned firewall rule(s)?",
-            "Delete");
+            "Delete Selected Firewall Rules?",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
 
-        if (ok)
+        if (result == MessageBoxResult.Yes)
         {
             await ViewModel.DeleteSelectedOrphanedAsync();
         }

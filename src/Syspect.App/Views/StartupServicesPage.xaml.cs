@@ -27,14 +27,6 @@ public partial class StartupServicesPage : UserControl
         await ViewModel.LoadAsync();
     }
 
-    private void TabRadio_Checked(object sender, RoutedEventArgs e)
-    {
-        if (sender is RadioButton { Tag: string tag } && int.TryParse(tag, out int index))
-        {
-            ViewModel.SelectedTabIndex = index;
-        }
-    }
-
     private async void ToggleStartupButton_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: StartupItemViewModel item })
@@ -90,13 +82,14 @@ public partial class StartupServicesPage : UserControl
     {
         if (sender is FrameworkElement { Tag: ScheduledTaskViewModel task })
         {
-            var ok = DialogHelper.ShowConfirmDialog(
+            var result = MessageBox.Show(
                 Window.GetWindow(this),
-                "Delete Scheduled Task?",
                 $"Permanently delete scheduled task '{task.FullPath}'?",
-                "Delete");
+                "Delete Scheduled Task?",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
 
-            if (ok)
+            if (result == MessageBoxResult.Yes)
             {
                 await ViewModel.DeleteTaskAsync(task.Model);
             }
@@ -107,10 +100,13 @@ public partial class StartupServicesPage : UserControl
     {
         if (entry.SafetyTier != SafetyTier.Caution) return true;
 
-        return DialogHelper.ShowConfirmDialog(
+        var result = MessageBox.Show(
             Window.GetWindow(this),
-            $"Caution: '{entry.DisplayName}'",
             $"{entry.CategoryNote}\n\nAre you sure you want to {actionText} this service?",
-            "Continue");
+            $"Caution: '{entry.DisplayName}'",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        return result == MessageBoxResult.Yes;
     }
 }
