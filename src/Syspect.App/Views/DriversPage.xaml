@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Syspect.App.Views.DriversPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Enabled">
+
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <TextBlock Text="Drivers &amp; Device Status" Style="{StaticResource PageHeaderStyle}" />
+                <TextBlock Text="Inspects PnP error codes, signed drivers, and generic Microsoft inbox driver hints" Style="{StaticResource MutedCaptionStyle}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Width="20" Height="20" />
+                <Button Content="Rescan" Click="RefreshButton_Click" IsEnabled="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InvBool}}" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource FluentCardStyle}" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Problem Devices" Style="{StaticResource MutedCaptionStyle}" />
+                    <TextBlock Text="{x:Bind ViewModel.ProblemCount, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource FluentCardStyle}" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Generic Driver Hints" Style="{StaticResource MutedCaptionStyle}" />
+                    <TextBlock Text="{x:Bind ViewModel.HintCount, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource FluentCardStyle}" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Scanned Drivers" Style="{StaticResource MutedCaptionStyle}" />
+                    <TextBlock Text="{x:Bind ViewModel.TotalCount, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Grid Grid.Row="2" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ComboBox Grid.Column="0" SelectedIndex="{x:Bind ViewModel.SelectedFilterIndex, Mode=TwoWay}" MinWidth="210">
+                <ComboBoxItem Content="All Scanned Drivers" />
+                <ComboBoxItem Content="Hints &amp; Errors Only" />
+                <ComboBoxItem Content="Core Hardware Only" />
+            </ComboBox>
+            <TextBox Grid.Column="1"
+                     PlaceholderText="Search by device, class, provider, or INF..."
+                     Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+        </Grid>
+
+        <Border Grid.Row="3" Style="{StaticResource FluentCardStyle}" Padding="8">
+            <ListView ItemsSource="{x:Bind ViewModel.FilteredDrivers}" SelectionMode="None">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,2" Padding="12,10" CornerRadius="6"
+                                Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                                BorderThickness="1">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="125" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="{Binding DeviceClass}" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+
+                                <StackPanel Grid.Column="1" Spacing="2">
+                                    <TextBlock Text="{Binding DeviceName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                    <TextBlock Style="{StaticResource MutedCaptionStyle}">
+                                        <Run Text="{Binding ProviderName}" />
+                                        <Run Text=" · " />
+                                        <Run Text="{Binding InfName}" />
+                                    </TextBlock>
+                                    <TextBlock Text="{Binding HintMessage}"
+                                               Visibility="{Binding HintMessage, Converter={StaticResource NotEmptyToVis}}"
+                                               Foreground="{ThemeResource SystemFillColorCautionBrush}"
+                                               FontSize="12" TextWrapping="Wrap" Margin="0,4,0,0" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding DriverVersion}" FontFamily="Consolas" FontSize="12" />
+                                    <TextBlock Text="{Binding DriverDate}" Style="{StaticResource MutedCaptionStyle}" />
+                                </StackPanel>
+
+                                <Border Grid.Column="3" Style="{StaticResource StatusPillStyle}" HorizontalAlignment="Right"
+                                        Background="{Binding HasAnyIssue, Converter={StaticResource BoolStatusBrush}, ConverterParameter=Invert}">
+                                    <TextBlock Text="{Binding StatusLabel}" FontSize="11" FontWeight="SemiBold" />
+                                </Border>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+    </Grid>
+</Page>

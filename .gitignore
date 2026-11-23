@@ -1,0 +1,46 @@
+# .NET / C# Build Artifacts
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+publish/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+TestResults/
+*.nupkg
+*.snupkg
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.cache
+
+# WiX / Installer / Release Output
+dist/
+*.msi
+*.wixpdb
+*.cab
+
+# Node / npm
+node_modules/
+npm-debug.log*
+
+# Logs & Runtime Artifacts
+logs/
+*.log
+
+# IDE / OS / Agent Metadata
+.vs/
+.vscode/
+.agents/
+Thumbs.db
+Desktop.ini
+.DS_Store
+/AGENTS.md
+/scripts/
+/tests/
+/installer/
+/package.json
+package-lock.json
+*.zip

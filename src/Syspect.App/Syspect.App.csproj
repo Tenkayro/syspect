@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <RootNamespace>Syspect.App</RootNamespace>
+    <AssemblyName>syspect</AssemblyName>
+    <AssemblyTitle>syspect</AssemblyTitle>
+    <Description>Native Windows 11 system diagnostics, repair, and maintenance utility</Description>
+    <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <TieredPGO>true</TieredPGO>
+    <NoWarn>$(NoWarn);IL2026;IL2072;IL2075;IL2104;IL3000;IL3050</NoWarn>
+  </PropertyGroup>
+
+  <!-- Size & trim optimizations for Release builds -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <SuppressTrimAnalysisWarnings>true</SuppressTrimAnalysisWarnings>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <DebuggerSupport>false</DebuggerSupport>
+    <EventSourceSupport>false</EventSourceSupport>
+    <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
+    <MetadataUpdaterSupport>false</MetadataUpdaterSupport>
+    <EnableUnsafeBinaryFormatterSerialization>false</EnableUnsafeBinaryFormatterSerialization>
+    <UseSystemResourceKeys>true</UseSystemResourceKeys>
+    <MetricsSupport>false</MetricsSupport>
+    <StartupHookSupport>false</StartupHookSupport>
+    <EnableUnsafeUTF7Encoding>false</EnableUnsafeUTF7Encoding>
+    <XmlResolverIsNetworkingEnabledByDefault>false</XmlResolverIsNetworkingEnabledByDefault>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <TrimmerRootAssembly Include="Syspect.Core" />
+    <TrimmerRootAssembly Include="System.Management" />
+    <TrimmerRootAssembly Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
+    <!-- Modular WindowsAppSDK 1.8 packages (omits AI, ML, and Widgets to keep binary footprint small) -->
+    <PackageReference Include="Microsoft.WindowsAppSDK.Base" Version="1.8.251216001" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Foundation" Version="1.8.260803002" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.InteractiveExperiences" Version="1.8.260708001" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.WinUI" Version="1.8.260803003" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.DWrite" Version="1.8.25122902" />
+    <PackageReference Include="Microsoft.WindowsAppSDK.Runtime" Version="1.8.260921001" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Syspect.Core\Syspect.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <Authors>Tenkayro</Authors>
+    <Company>Tenkayro</Company>
+    <Product>syspect</Product>
+    <Copyright>Copyright © Tenkayro</Copyright>
+    <PackageProjectUrl>https://tenkayro.de</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Tenkayro/syspect</RepositoryUrl>
+    <NeutralLanguage>en</NeutralLanguage>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <BuildInParallel>true</BuildInParallel>
+    <UseSharedCompilation>true</UseSharedCompilation>
+  </PropertyGroup>
+</Project>

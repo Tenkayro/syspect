@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Syspect.App.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Enabled">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Spacing="16" Margin="0,0,8,16">
+
+            <!-- Header -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="System Overview" Style="{StaticResource PageHeaderStyle}" />
+                    <TextBlock Text="Live health summary for storage, Windows integrity, drivers, and firewall" Style="{StaticResource MutedCaptionStyle}" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Width="20" Height="20" />
+                    <Button Content="Refresh" Click="RefreshButton_Click" IsEnabled="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InvBool}}" />
+                    <Button Content="Run Smart Pipeline" Style="{StaticResource AccentButtonStyle}" Click="GoToRepairButton_Click" />
+                </StackPanel>
+            </Grid>
+
+            <InfoBar IsOpen="{x:Bind ViewModel.IsBannerOpen, Mode=TwoWay}"
+                     Severity="{x:Bind ViewModel.BannerSeverity, Mode=OneWay}"
+                     Message="{x:Bind ViewModel.BannerMessage, Mode=OneWay}" />
+
+            <!-- 4 KPI Hero Cards -->
+            <Grid ColumnSpacing="12" RowSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource FluentCardStyle}">
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xEDA2;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="SSD &amp; Storage" Style="{StaticResource CardTitleStyle}" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.SsdHeadline, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind ViewModel.SsdSubtext, Mode=OneWay}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource FluentCardStyle}">
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE770;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Windows Integrity (CBS.log)" Style="{StaticResource CardTitleStyle}" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.WindowsHeadline, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind ViewModel.WindowsSubtext, Mode=OneWay}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource FluentCardStyle}">
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE7F4;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Drivers &amp; Devices" Style="{StaticResource CardTitleStyle}" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.DriverHeadline, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind ViewModel.DriverSubtext, Mode=OneWay}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource FluentCardStyle}">
+                    <StackPanel Spacing="6">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xEA18;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                            <TextBlock Text="Firewall &amp; Network" Style="{StaticResource CardTitleStyle}" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.FirewallHeadline, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind ViewModel.FirewallSubtext, Mode=OneWay}" Style="{StaticResource MutedCaptionStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- System Details & Quick Actions -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.2*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource FluentCardStyle}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Hardware &amp; OS" Style="{StaticResource CardTitleStyle}" />
+                        <Grid ColumnSpacing="12" RowSpacing="6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="125" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Operating System" Style="{StaticResource MutedCaptionStyle}" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{x:Bind ViewModel.Overview.OsCaption, Mode=OneWay, FallbackValue='-'}" TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Build / Uptime" Style="{StaticResource MutedCaptionStyle}" />
+                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{x:Bind ViewModel.Overview.OsBuild, Mode=OneWay, FallbackValue='-'}" />
+                                <TextBlock Text="·" />
+                                <TextBlock Text="{x:Bind ViewModel.Overview.UptimeText, Mode=OneWay, FallbackValue='-'}" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Motherboard / BIOS" Style="{StaticResource MutedCaptionStyle}" />
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                <TextBlock Text="{x:Bind ViewModel.Overview.Motherboard, Mode=OneWay, FallbackValue='-'}" />
+                                <TextBlock Text="{x:Bind ViewModel.Overview.BiosVersion, Mode=OneWay, FallbackValue=''}" />
+                            </StackPanel>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Processor" Style="{StaticResource MutedCaptionStyle}" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Bind ViewModel.Overview.CpuName, Mode=OneWay, FallbackValue='-'}" TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Graphics" Style="{StaticResource MutedCaptionStyle}" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="{x:Bind ViewModel.Overview.GpuName, Mode=OneWay, FallbackValue='-'}" TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Memory" Style="{StaticResource MutedCaptionStyle}" />
+                            <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="{x:Bind ViewModel.Overview.TotalRamGb, Mode=OneWay, FallbackValue=0}" />
+                                <TextBlock Text="GB RAM" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="1" Style="{StaticResource FluentCardStyle}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Quick Actions" Style="{StaticResource CardTitleStyle}" />
+                        <TextBlock Text="Safe one-click maintenance for Windows 11." Style="{StaticResource MutedCaptionStyle}" />
+
+                        <Button Content="Open Repair Pipeline"
+                                HorizontalAlignment="Stretch"
+                                Style="{StaticResource AccentButtonStyle}"
+                                Click="GoToRepairButton_Click" />
+
+                        <Button Content="One-Click Safe Cleanup (DiagTrack, Orphans, Temp)"
+                                HorizontalAlignment="Stretch"
+                                Click="OneClickCleanupButton_Click"
+                                IsEnabled="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InvBool}}" />
+
+                        <Button Content="Restart NVIDIA Tray Services"
+                                HorizontalAlignment="Stretch"
+                                Click="RestartNvidiaButton_Click"
+                                IsEnabled="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InvBool}}" />
+
+                        <Button Content="Inspect Logs &amp; CBS.log"
+                                HorizontalAlignment="Stretch"
+                                Click="GoToLogsButton_Click" />
+
+                        <Button Content="{x:Bind ViewModel.CurrentVersionDisplay}"
+                                HorizontalAlignment="Stretch"
+                                Click="CheckUpdatesButton_Click"
+                                IsEnabled="{x:Bind ViewModel.IsLoading, Mode=OneWay, Converter={StaticResource InvBool}}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

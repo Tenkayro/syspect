@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Syspect.App.Views.LogsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    NavigationCacheMode="Enabled">
+
+    <Grid RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel>
+                <TextBlock Text="Logs &amp; Windows CBS.log" Style="{StaticResource PageHeaderStyle}" />
+                <TextBlock Text="Saved syspect run transcripts and live structured Windows CBS.log repair report" Style="{StaticResource MutedCaptionStyle}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" Width="20" Height="20" />
+                <Button Content="Copy Text" Click="CopyContentButton_Click" />
+                <Button Content="Open Log Folder" Click="OpenFolderButton_Click" />
+                <Button Content="Refresh" Style="{StaticResource AccentButtonStyle}" Click="RefreshButton_Click" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource FluentCardStyle}" Padding="8">
+                <ListView ItemsSource="{x:Bind ViewModel.LogFiles}"
+                          SelectedItem="{x:Bind ViewModel.SelectedLog, Mode=TwoWay}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Padding="4,6" Spacing="2">
+                                <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Style="{StaticResource MutedCaptionStyle}">
+                                    <Run Text="{Binding SourceLabel}" />
+                                    <Run Text=" · " />
+                                    <Run Text="{Binding ModifiedDisplay}" />
+                                    <Run Text=" · " />
+                                    <Run Text="{Binding SizeDisplay}" />
+                                </TextBlock>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource FluentCardStyle}" Padding="12">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+                              CornerRadius="6" Padding="14">
+                    <TextBlock Text="{x:Bind ViewModel.SelectedLogContent, Mode=OneWay}"
+                               FontFamily="Consolas" FontSize="12"
+                               TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </Grid>
+</Page>
