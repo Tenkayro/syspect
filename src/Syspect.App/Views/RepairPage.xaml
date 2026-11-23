@@ -44,12 +44,54 @@
 
         <Border Grid.Row="2" Style="{StaticResource FluentCardStyle}" Padding="14,10">
             <StackPanel Spacing="6">
-                <Grid>
-                    <TextBlock Text="{x:Bind ViewModel.CurrentStepText, Mode=OneWay}" FontWeight="SemiBold" />
-                    <TextBlock HorizontalAlignment="Right" Style="{StaticResource MutedCaptionStyle}"
-                               Text="{x:Bind ViewModel.LastSavedLogPath, Mode=OneWay}" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{x:Bind ViewModel.CurrentStepText, Mode=OneWay}"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1"
+                               Style="{StaticResource MutedCaptionStyle}"
+                               Text="{x:Bind ViewModel.ElapsedStatusText, Mode=OneWay}"
+                               TextTrimming="CharacterEllipsis" />
                 </Grid>
+
                 <ProgressBar Minimum="0" Maximum="100" Value="{x:Bind ViewModel.ProgressPercent, Mode=OneWay}" />
+
+                <StackPanel Spacing="4"
+                            Visibility="{x:Bind ViewModel.IsRunning, Mode=OneWay, Converter={StaticResource BoolToVis}}">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ProgressRing Grid.Column="0"
+                                      Width="14" Height="14"
+                                      IsActive="{x:Bind ViewModel.IsRunning, Mode=OneWay}"
+                                      VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{x:Bind ViewModel.LiveActivityText, Mode=OneWay}"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   TextTrimming="CharacterEllipsis"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2"
+                                   Text="{x:Bind ViewModel.LiveMetricsText, Mode=OneWay}"
+                                   FontFamily="Consolas"
+                                   FontSize="12"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <ProgressBar Minimum="0"
+                                 Maximum="100"
+                                 Height="3"
+                                 Value="{x:Bind ViewModel.DownloadProgressPercent, Mode=OneWay}"
+                                 Visibility="{x:Bind ViewModel.HasDownloadProgress, Mode=OneWay, Converter={StaticResource BoolToVis}}" />
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -116,7 +158,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="Live Console (DISM / SFC / chkdsk)" Style="{StaticResource CardTitleStyle}" />
+                        <TextBlock Grid.Row="0" Text="Live Console &amp; Background Activity (DISM / CBS / SFC / chkdsk)" Style="{StaticResource CardTitleStyle}" />
                         <ScrollViewer x:Name="ConsoleScrollViewer" Grid.Row="1" VerticalScrollBarVisibility="Auto"
                                       Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
                                       CornerRadius="6" Padding="12">

@@ -90,19 +90,96 @@ public static class ProcessRunner
 
         async Task ReadStreamAsync(StreamReader reader)
         {
-            while (true)
-            {
-                var line = await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false);
-                if (line is null) break;
+            var charBuffer = new char[128];
+            var lineBuilder = new StringBuilder();
+            bool lastWasCr = false;
+            string? lastBufferedLine = null;
 
-                var cleaned = line.Replace("\0", string.Empty);
+            void FlushLine(bool allowDuplicateInBuffer)
+            {
+                if (lineBuilder.Length == 0)
+                {
+                    return;
+                }
+
+                var cleaned = lineBuilder.ToString();
+                lineBuilder.Clear();
+
                 lock (bufferLock)
                 {
-                    buffer.AppendLine(cleaned);
+                    if (allowDuplicateInBuffer || !string.Equals(lastBufferedLine, cleaned, StringComparison.Ordinal))
+                    {
+                        buffer.AppendLine(cleaned);
+                        lastBufferedLine = cleaned;
+                    }
                 }
 
                 onLine?.Invoke(cleaned);
             }
+
+            while (true)
+            {
+                int read = await reader.ReadAsync(charBuffer.AsMemory(), cancellationToken).ConfigureAwait(false);
+                if (read <= 0)
+                {
+                    break;
+                }
+
+                for (int i = 0; i < read; i++)
+                {
+                    char c = charBuffer[i];
+                    if (c == '\0')
+                    {
+                        continue;
+                    }
+
+                    if (c == '\n')
+                    {
+                        if (lastWasCr)
+                        {
+                            lastWasCr = false;
+                            continue;
+                        }
+
+                        FlushLine(allowDuplicateInBuffer: true);
+                        continue;
+                    }
+
+                    if (c == '\r')
+                    {
+                        lastWasCr = true;
+                        if (lineBuilder.Length > 0)
+                        {
+                            FlushLine(allowDuplicateInBuffer: false);
+                        }
+                        continue;
+                    }
+
+                    lastWasCr = false;
+                    lineBuilder.Append(c);
+
+                    if (c == ']' && lineBuilder.Length >= 8)
+                    {
+                        var current = lineBuilder.ToString();
+                        if (current.TrimStart().StartsWith('[') && current.Contains('%', StringComparison.Ordinal))
+                        {
+                            FlushLine(allowDuplicateInBuffer: false);
+                        }
+                    }
+                    else if (c == '.' && lineBuilder.Length >= 14)
+                    {
+                        var current = lineBuilder.ToString();
+                        if (current.Contains('%', StringComparison.Ordinal) &&
+                            (current.Contains("abgeschlossen", StringComparison.OrdinalIgnoreCase) ||
+                             current.Contains("complete", StringComparison.OrdinalIgnoreCase)))
+                        {
+                            FlushLine(allowDuplicateInBuffer: false);
+                        }
+                    }
+                }
+            }
+
+            FlushLine(allowDuplicateInBuffer: true);
         }
 
         try

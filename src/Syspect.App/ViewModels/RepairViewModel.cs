@@ -1,10 +1,12 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Controls;
 using Syspect.App.Services;
 using Syspect.Core.Models;
+using Syspect.Core.Services;
 
 namespace Syspect.App.ViewModels;
 
@@ -12,6 +14,7 @@ public sealed class RepairStepItemViewModel : ObservableObject
 {
     private bool _isSelected;
     private RepairStepState _state = RepairStepState.Pending;
+    private double? _stepPercent;
     private string _exitCodeText = "-";
     private string _durationText = "-";
     private string _summaryText;
@@ -34,13 +37,27 @@ public sealed class RepairStepItemViewModel : ObservableObject
         }
     }
 
+    public double? StepPercent
+    {
+        get => _stepPercent;
+        set
+        {
+            if (SetProperty(ref _stepPercent, value))
+            {
+                OnPropertyChanged(nameof(StateLabel));
+            }
+        }
+    }
+
     public string ExitCodeText { get => _exitCodeText; set => SetProperty(ref _exitCodeText, value); }
     public string DurationText { get => _durationText; set => SetProperty(ref _durationText, value); }
     public string SummaryText { get => _summaryText; set => SetProperty(ref _summaryText, value); }
 
     public string StateLabel => State switch
     {
-        RepairStepState.Running => "Running...",
+        RepairStepState.Running => StepPercent.HasValue
+            ? string.Create(CultureInfo.InvariantCulture, $"{StepPercent.Value:0.0}%")
+            : "Running...",
         RepairStepState.Succeeded => "OK",
         RepairStepState.Warning => "Warning",
         RepairStepState.Failed => "Failed",
@@ -60,13 +77,21 @@ public sealed class RepairStepItemViewModel : ObservableObject
 
 public sealed class RepairViewModel : ObservableObject
 {
+    private const int MaxConsoleDisplayChars = 150_000;
+
     private readonly AppServices _services = AppServices.Current;
     private readonly StringBuilder _consoleBuffer = new();
     private CancellationTokenSource? _cts;
+    private DateTimeOffset _pipelineStartedAt;
 
     private bool _isRunning;
     private double _progressPercent;
     private string _currentStepText = "Ready to run.";
+    private string _elapsedStatusText = string.Empty;
+    private string _liveActivityText = string.Empty;
+    private string _liveMetricsText = string.Empty;
+    private bool _hasDownloadProgress;
+    private double _downloadProgressPercent;
     private string _consoleText = "Click 'Run Smart Pipeline' to execute SSD, chkdsk /scan, DISM, and SFC diagnostics.";
     private string _lastSavedLogPath = string.Empty;
     private CbsRepairReport? _cbsReport;
@@ -75,11 +100,16 @@ public sealed class RepairViewModel : ObservableObject
     private bool _isBannerOpen;
 
     public ObservableCollection<RepairStepItemViewModel> Steps { get; } = new(
-        Core.Services.HealthRepairService.GetDefaultSteps().Select(d => new RepairStepItemViewModel(d)));
+        HealthRepairService.GetDefaultSteps().Select(d => new RepairStepItemViewModel(d)));
 
     public bool IsRunning { get => _isRunning; set => SetProperty(ref _isRunning, value); }
     public double ProgressPercent { get => _progressPercent; set => SetProperty(ref _progressPercent, value); }
     public string CurrentStepText { get => _currentStepText; set => SetProperty(ref _currentStepText, value); }
+    public string ElapsedStatusText { get => _elapsedStatusText; set => SetProperty(ref _elapsedStatusText, value); }
+    public string LiveActivityText { get => _liveActivityText; set => SetProperty(ref _liveActivityText, value); }
+    public string LiveMetricsText { get => _liveMetricsText; set => SetProperty(ref _liveMetricsText, value); }
+    public bool HasDownloadProgress { get => _hasDownloadProgress; set => SetProperty(ref _hasDownloadProgress, value); }
+    public double DownloadProgressPercent { get => _downloadProgressPercent; set => SetProperty(ref _downloadProgressPercent, value); }
     public string ConsoleText { get => _consoleText; set => SetProperty(ref _consoleText, value); }
     public string LastSavedLogPath { get => _lastSavedLogPath; set => SetProperty(ref _lastSavedLogPath, value); }
     public CbsRepairReport? CbsReport { get => _cbsReport; private set => SetProperty(ref _cbsReport, value); }
@@ -109,16 +139,23 @@ public sealed class RepairViewModel : ObservableObject
         foreach (var step in Steps)
         {
             step.State = step.IsSelected ? RepairStepState.Pending : RepairStepState.Skipped;
+            step.StepPercent = null;
             step.ExitCodeText = "-";
             step.DurationText = "-";
             step.SummaryText = step.Description;
         }
 
+        _pipelineStartedAt = DateTimeOffset.UtcNow;
         _consoleBuffer.Clear();
         ConsoleText = string.Empty;
         ProgressPercent = 0;
         LastSavedLogPath = string.Empty;
         CurrentStepText = "Starting pipeline...";
+        ElapsedStatusText = "Elapsed: 0s";
+        LiveActivityText = "Preparing selected diagnostic steps...";
+        LiveMetricsText = string.Empty;
+        HasDownloadProgress = false;
+        DownloadProgressPercent = 0;
         IsBannerOpen = false;
         IsRunning = true;
 
@@ -127,17 +164,86 @@ public sealed class RepairViewModel : ObservableObject
         {
             dispatcher.TryEnqueue(() =>
             {
-                if (update.StepId.HasValue)
+                var activeItem = update.StepId.HasValue
+                    ? Steps.FirstOrDefault(s => s.Id == update.StepId.Value)
+                    : null;
+
+                if (activeItem is not null && update.StepState.HasValue)
                 {
-                    var item = Steps.FirstOrDefault(s => s.Id == update.StepId.Value);
-                    if (item is not null && update.StepState.HasValue)
+                    activeItem.State = update.StepState.Value;
+                    if (update.StepState.Value == RepairStepState.Running && update.Telemetry is null)
                     {
-                        item.State = update.StepState.Value;
-                        if (update.StepState.Value == RepairStepState.Running)
-                        {
-                            CurrentStepText = $"Running: {item.Title}";
-                        }
+                        CurrentStepText = activeItem.StepPercent.HasValue
+                            ? string.Create(CultureInfo.InvariantCulture, $"Running: {activeItem.Title} · {activeItem.StepPercent.Value:0.0}%")
+                            : $"Running: {activeItem.Title}";
                     }
+                }
+
+                if (update.Telemetry is { } telemetry)
+                {
+                    var pipelineElapsed = DateTimeOffset.UtcNow - _pipelineStartedAt;
+                    if (activeItem is not null)
+                    {
+                        if (telemetry.StepElapsed.HasValue)
+                        {
+                            activeItem.DurationText = RepairLiveMonitor.FormatDuration(telemetry.StepElapsed.Value);
+                        }
+                        if (telemetry.StepPercent.HasValue)
+                        {
+                            activeItem.StepPercent = telemetry.StepPercent.Value;
+                        }
+                        if (!string.IsNullOrWhiteSpace(telemetry.PhaseText))
+                        {
+                            activeItem.SummaryText = telemetry.PhaseText;
+                        }
+
+                        CurrentStepText = activeItem.StepPercent.HasValue
+                            ? string.Create(CultureInfo.InvariantCulture, $"Running: {activeItem.Title} · {activeItem.StepPercent.Value:0.0}%")
+                            : $"Running: {activeItem.Title}";
+                    }
+
+                    ElapsedStatusText = telemetry.StepElapsed.HasValue
+                        ? $"Elapsed: {RepairLiveMonitor.FormatDuration(pipelineElapsed)} · Step: {RepairLiveMonitor.FormatDuration(telemetry.StepElapsed.Value)}"
+                        : $"Elapsed: {RepairLiveMonitor.FormatDuration(pipelineElapsed)}";
+
+                    if (telemetry.DownloadTotalBytes is > 0 && telemetry.DownloadReceivedBytes is >= 0)
+                    {
+                        double dlPct = Math.Clamp(telemetry.DownloadPercent ?? 0, 0, 100);
+                        var etaPart = telemetry.DownloadEta.HasValue
+                            ? $" · ETA {RepairLiveMonitor.FormatEta(telemetry.DownloadEta)}"
+                            : string.Empty;
+                        LiveActivityText = string.Create(
+                            CultureInfo.InvariantCulture,
+                            $"Downloading repair payload: {dlPct:0}% ({RepairLiveMonitor.FormatBytes(telemetry.DownloadReceivedBytes.Value)} / {RepairLiveMonitor.FormatBytes(telemetry.DownloadTotalBytes.Value)}){etaPart}");
+                        HasDownloadProgress = dlPct < 100;
+                        DownloadProgressPercent = dlPct;
+                    }
+                    else
+                    {
+                        HasDownloadProgress = false;
+                        DownloadProgressPercent = 0;
+                        LiveActivityText = !string.IsNullOrWhiteSpace(telemetry.PhaseText)
+                            ? telemetry.PhaseText
+                            : "Working in background...";
+                    }
+
+                    var metrics = new List<string>(2);
+                    double? netBps = telemetry.DownloadBytesPerSec ?? telemetry.SystemNetworkDownBytesPerSec;
+                    if (netBps is >= 1024)
+                    {
+                        metrics.Add($"↓ {RepairLiveMonitor.FormatSpeed(netBps.Value)}");
+                    }
+                    else if (telemetry.SystemNetworkDownBytesPerSec is >= 0)
+                    {
+                        metrics.Add("↓ 0.0 MB/s");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(telemetry.ActiveWorkerText))
+                    {
+                        metrics.Add(telemetry.ActiveWorkerText);
+                    }
+
+                    LiveMetricsText = string.Join(" · ", metrics);
                 }
 
                 if (update.Percent.HasValue)
@@ -148,6 +254,17 @@ public sealed class RepairViewModel : ObservableObject
                 if (!string.IsNullOrEmpty(update.LogLine))
                 {
                     _consoleBuffer.AppendLine(update.LogLine);
+                    if (_consoleBuffer.Length > MaxConsoleDisplayChars)
+                    {
+                        int excess = _consoleBuffer.Length - (MaxConsoleDisplayChars - 10_000);
+                        var current = _consoleBuffer.ToString();
+                        int cutIdx = current.IndexOf('\n', Math.Clamp(excess, 0, Math.Max(0, current.Length - 1)));
+                        int start = cutIdx >= 0 ? cutIdx + 1 : excess;
+                        _consoleBuffer.Clear();
+                        _consoleBuffer.Append("... [older console output trimmed; full log is saved to disk] ...\n");
+                        _consoleBuffer.Append(current.AsSpan(start));
+                    }
+
                     ConsoleText = _consoleBuffer.ToString();
                     scrollConsoleToEnd();
                 }
@@ -157,16 +274,21 @@ public sealed class RepairViewModel : ObservableObject
                     var item = Steps.FirstOrDefault(s => s.Id == update.CompletedResult.Id);
                     if (item is not null)
                     {
+                        item.StepPercent = null;
                         item.State = update.CompletedResult.State;
                         item.ExitCodeText = update.CompletedResult.ExitCodeDisplay;
                         item.DurationText = update.CompletedResult.DurationDisplay;
                         item.SummaryText = update.CompletedResult.Summary;
                     }
+
+                    HasDownloadProgress = false;
+                    DownloadProgressPercent = 0;
                 }
 
                 if (!string.IsNullOrWhiteSpace(update.SavedLogPath))
                 {
                     LastSavedLogPath = update.SavedLogPath;
+                    ElapsedStatusText = update.SavedLogPath;
                 }
             });
         });
@@ -195,6 +317,14 @@ public sealed class RepairViewModel : ObservableObject
         {
             _cts?.Dispose();
             _cts = null;
+            HasDownloadProgress = false;
+            DownloadProgressPercent = 0;
+            LiveActivityText = string.Empty;
+            LiveMetricsText = string.Empty;
+            if (string.IsNullOrEmpty(LastSavedLogPath))
+            {
+                ElapsedStatusText = string.Empty;
+            }
             IsRunning = false;
         }
     }

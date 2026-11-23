@@ -42,10 +42,23 @@ public sealed record RepairStepResult(
         : $"{Duration.TotalSeconds:F1}s";
 }
 
+public sealed record RepairLiveTelemetry(
+    string? PhaseText = null,
+    double? StepPercent = null,
+    TimeSpan? StepElapsed = null,
+    long? DownloadReceivedBytes = null,
+    long? DownloadTotalBytes = null,
+    double? DownloadPercent = null,
+    double? DownloadBytesPerSec = null,
+    TimeSpan? DownloadEta = null,
+    double? SystemNetworkDownBytesPerSec = null,
+    string? ActiveWorkerText = null);
+
 public sealed record RepairProgressUpdate(
     RepairStepId? StepId,
     RepairStepState? StepState,
     double? Percent,
     string? LogLine,
     RepairStepResult? CompletedResult,
-    string? SavedLogPath = null);
+    string? SavedLogPath = null,
+    RepairLiveTelemetry? Telemetry = null);

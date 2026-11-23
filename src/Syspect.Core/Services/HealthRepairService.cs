@@ -15,7 +15,7 @@ public sealed partial class HealthRepairService
         "syspect",
         "logs");
 
-    [GeneratedRegex(@"(\d+(?:[.,]\d+)?)\s*%")]
+    [GeneratedRegex(@"(\d+(?:[.,]\d+)?)\s*(?:%|\bProzent\b|\bpercent\b)", RegexOptions.IgnoreCase)]
     private static partial Regex PercentRegex();
 
     private readonly SystemInfoService _systemInfoService;
@@ -47,12 +47,16 @@ public sealed partial class HealthRepairService
         Directory.CreateDirectory(DefaultAppLogDirectory);
         var logFilePath = Path.Combine(DefaultAppLogDirectory, $"syspect-{DateTime.Now:yyyyMMdd-HHmmss}.log");
         var logBuilder = new StringBuilder();
+        var logLock = new object();
         logBuilder.AppendLine($"syspect Repair Log — Started: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
         logBuilder.AppendLine(new string('=', 60));
 
         void EmitLine(string text)
         {
-            logBuilder.AppendLine(text);
+            lock (logLock)
+            {
+                logBuilder.AppendLine(text);
+            }
             progress?.Report(new RepairProgressUpdate(null, null, null, text, null));
         }
 
@@ -68,7 +72,10 @@ public sealed partial class HealthRepairService
             double basePercent = (idx * 100.0) / totalSteps;
 
             progress?.Report(new RepairProgressUpdate(stepId, RepairStepState.Running, basePercent, $"\n=== {def.Title} ===", null));
-            logBuilder.AppendLine($"\n=== {def.Title} ===");
+            lock (logLock)
+            {
+                logBuilder.AppendLine($"\n=== {def.Title} ===");
+            }
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
             RepairStepResult stepResult;
@@ -110,14 +117,19 @@ public sealed partial class HealthRepairService
             progress?.Report(new RepairProgressUpdate(stepId, stepResult.State, ((idx + 1) * 100.0) / totalSteps, null, stepResult));
         }
 
-        logBuilder.AppendLine("\n" + new string('=', 60));
-        logBuilder.AppendLine("Summary:");
-        foreach (var r in results)
+        string finalLogText;
+        lock (logLock)
         {
-            logBuilder.AppendLine($"  {r.Title,-34} | Code: {r.ExitCodeDisplay,-4} | {r.State} ({r.DurationDisplay}) | {r.Summary}");
+            logBuilder.AppendLine("\n" + new string('=', 60));
+            logBuilder.AppendLine("Summary:");
+            foreach (var r in results)
+            {
+                logBuilder.AppendLine($"  {r.Title,-34} | Code: {r.ExitCodeDisplay,-4} | {r.State} ({r.DurationDisplay}) | {r.Summary}");
+            }
+            finalLogText = logBuilder.ToString();
         }
 
-        await File.WriteAllTextAsync(logFilePath, logBuilder.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), CancellationToken.None).ConfigureAwait(false);
+        await File.WriteAllTextAsync(logFilePath, finalLogText, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), CancellationToken.None).ConfigureAwait(false);
         progress?.Report(new RepairProgressUpdate(null, null, 100, $"\nLog saved: {logFilePath}", null, logFilePath));
         return results;
     }
@@ -186,37 +198,122 @@ public sealed partial class HealthRepairService
 
         if (stepId == RepairStepId.DismRestoreHealth)
         {
-            emitLine("Note: DISM RestoreHealth commonly pauses around ~62% for 1-2 minutes while downloading/verifying payloads.");
+            emitLine("Note: Monitoring C:\\Windows\\Logs\\CBS\\CBS.log and network throughput live during Windows Update payload download/repair.");
         }
 
-        var lastProgressTick = 0L;
-        var (exitCode, _) = await ProcessRunner.RunAsync(
-            exe,
-            args,
-            encoding,
-            line =>
-            {
-                if (string.IsNullOrWhiteSpace(line)) return;
+        double? ComputeOverallPercent(double? stepPercent) =>
+            stepPercent.HasValue
+                ? basePercent + (Math.Clamp(stepPercent.Value, 0, 100) / 100.0 * stepWeight)
+                : null;
 
-                var m = PercentRegex().Match(line);
-                if (m.Success && double.TryParse(m.Groups[1].Value.Replace(',', '.'), CultureInfo.InvariantCulture, out var pct))
+        long lastProgressTick = 0L;
+        long lastLoggedPercentTick = 0L;
+        double lastLoggedPercent = -10.0;
+        string? currentPhaseHint = null;
+
+        int exitCode;
+        await using (var monitor = new RepairLiveMonitor())
+        {
+            monitor.Start(
+                stepId,
+                emitLine,
+                telemetry => progress?.Report(new RepairProgressUpdate(
+                    stepId,
+                    RepairStepState.Running,
+                    ComputeOverallPercent(telemetry.StepPercent),
+                    null,
+                    null,
+                    null,
+                    telemetry)));
+
+            (exitCode, _) = await ProcessRunner.RunAsync(
+                exe,
+                args,
+                encoding,
+                line =>
                 {
-                    var now = Environment.TickCount64;
-                    if (now - lastProgressTick >= 200 || pct >= 100)
-                    {
-                        lastProgressTick = now;
-                        progress?.Report(new RepairProgressUpdate(stepId, RepairStepState.Running, basePercent + (Math.Clamp(pct, 0, 100) / 100.0 * stepWeight), null, null));
-                    }
-
-                    if (pct < 100 && (line.TrimStart().StartsWith('[') || line.Contains("Phase:", StringComparison.Ordinal)))
+                    if (string.IsNullOrWhiteSpace(line))
                     {
                         return;
                     }
-                }
 
-                emitLine(line);
-            },
-            cancellationToken: ct).ConfigureAwait(false);
+                    var trimmed = line.Trim();
+                    var m = PercentRegex().Match(line);
+                    if (m.Success && double.TryParse(m.Groups[1].Value.Replace(',', '.'), CultureInfo.InvariantCulture, out var pct))
+                    {
+                        var now = Environment.TickCount64;
+                        if (trimmed.StartsWith("Phase ", StringComparison.OrdinalIgnoreCase) ||
+                            trimmed.StartsWith("Stage ", StringComparison.OrdinalIgnoreCase) ||
+                            trimmed.StartsWith("Stufe ", StringComparison.OrdinalIgnoreCase))
+                        {
+                            currentPhaseHint = trimmed;
+                        }
+
+                        var phaseLabel = !string.IsNullOrWhiteSpace(currentPhaseHint)
+                            ? currentPhaseHint
+                            : trimmed.StartsWith('[')
+                                ? string.Create(CultureInfo.InvariantCulture, $"{title}: {pct:0.0}%")
+                                : trimmed;
+
+                        monitor.ReportStdoutProgress(pct, phaseLabel);
+
+                        if (now - lastProgressTick >= 200 || pct >= 100)
+                        {
+                            lastProgressTick = now;
+                            progress?.Report(new RepairProgressUpdate(
+                                stepId,
+                                RepairStepState.Running,
+                                ComputeOverallPercent(pct),
+                                null,
+                                null));
+                        }
+
+                        bool isProgressBarOrPercentStatus =
+                            trimmed.StartsWith('[') ||
+                            trimmed.Contains("Phase:", StringComparison.Ordinal) ||
+                            trimmed.Contains("abgeschlossen", StringComparison.OrdinalIgnoreCase) ||
+                            trimmed.Contains("complete", StringComparison.OrdinalIgnoreCase);
+
+                        if (isProgressBarOrPercentStatus)
+                        {
+                            if (pct + 5.0 < lastLoggedPercent)
+                            {
+                                lastLoggedPercent = -10.0;
+                            }
+
+                            bool shouldLogMilestone =
+                                pct >= 100 ||
+                                pct - lastLoggedPercent >= 10.0 ||
+                                (pct > lastLoggedPercent && now - lastLoggedPercentTick >= 15_000);
+
+                            if (shouldLogMilestone)
+                            {
+                                lastLoggedPercent = pct;
+                                lastLoggedPercentTick = now;
+                                emitLine(trimmed.StartsWith('[') && pct < 100
+                                    ? string.Create(CultureInfo.InvariantCulture, $"  [{title}] Progress: {pct:0.0}%")
+                                    : line);
+                            }
+                            return;
+                        }
+                    }
+                    else if (trimmed.StartsWith("Phase ", StringComparison.OrdinalIgnoreCase) ||
+                             trimmed.StartsWith("Stage ", StringComparison.OrdinalIgnoreCase) ||
+                             trimmed.StartsWith("Stufe ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        currentPhaseHint = trimmed;
+                        lastLoggedPercent = -10.0;
+                        monitor.ReportStdoutProgress(null, currentPhaseHint);
+                    }
+                    else
+                    {
+                        monitor.MarkStdoutActivity();
+                    }
+
+                    emitLine(line);
+                },
+                cancellationToken: ct).ConfigureAwait(false);
+        }
 
         sw.Stop();
         var state = exitCode == 0 ? RepairStepState.Succeeded : RepairStepState.Failed;
